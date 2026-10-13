@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function SideNavSkeleton({ collapsed }) {
   return (
-    <TooltipProvider delayDuration={0}>
+    <TooltipProvider delay={0}>
       <motion.div 
         className={cn(
           "bg-slate-900 text-white h-screen sticky top-0 left-0 z-40 flex flex-col border-r border-slate-800",

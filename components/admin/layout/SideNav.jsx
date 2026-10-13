@@ -91,7 +91,7 @@ export default function SideNav({ collapsed }) {
   }
 
   return (
-    <TooltipProvider delayDuration={0}>
+    <TooltipProvider delay={0}>
       <motion.div 
         className={cn(
           "bg-slate-900 text-white h-screen sticky top-0 left-0 z-40 flex flex-col border-r border-slate-800",
@@ -169,37 +169,39 @@ export default function SideNav({ collapsed }) {
                   transition={{ delay: index * 0.05 }}
                 >
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          "flex items-center h-11 rounded-lg transition-all duration-200 group",
-                          collapsed ? "px-3 justify-center" : "px-4",
-                          isActive 
-                            ? 'bg-blue-600 text-white shadow-lg' 
-                            : 'hover:bg-slate-800 text-slate-300 hover:text-white'
-                        )}
-                      >
-                        <span className={cn(
-                          "flex-shrink-0 transition-transform group-hover:scale-110",
-                          collapsed ? "" : "mr-3"
-                        )}>
-                          {item.icon}
-                        </span>
-                        <AnimatePresence>
-                          {!collapsed && (
-                            <motion.span 
-                              initial={{ opacity: 0, width: 0 }}
-                              animate={{ opacity: 1, width: "auto" }}
-                              exit={{ opacity: 0, width: 0 }}
-                              transition={{ duration: 0.2 }}
-                              className="text-sm font-medium truncate"
-                            >
-                              {item.name}
-                            </motion.span>
+                    <TooltipTrigger
+                      render={
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            "flex items-center h-11 rounded-lg transition-all duration-200 group",
+                            collapsed ? "px-3 justify-center" : "px-4",
+                            isActive 
+                              ? 'bg-blue-600 text-white shadow-lg' 
+                              : 'hover:bg-slate-800 text-slate-300 hover:text-white'
                           )}
-                        </AnimatePresence>
-                      </Link>
+                        />
+                      }
+                    >
+                      <span className={cn(
+                        "flex-shrink-0 transition-transform group-hover:scale-110",
+                        collapsed ? "" : "mr-3"
+                      )}>
+                        {item.icon}
+                      </span>
+                      <AnimatePresence>
+                        {!collapsed && (
+                          <motion.span 
+                            initial={{ opacity: 0, width: 0 }}
+                            animate={{ opacity: 1, width: "auto" }}
+                            exit={{ opacity: 0, width: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="text-sm font-medium truncate"
+                          >
+                            {item.name}
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
                     </TooltipTrigger>
                     {collapsed && (
                       <TooltipContent side="right" className="bg-slate-800 text-white border-slate-700">
