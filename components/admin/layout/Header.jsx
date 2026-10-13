@@ -1,106 +1,48 @@
 "use client";
 
-import { useState } from 'react';
+import * as React from "react";
+import Link from "next/link";
+import { MonitorPlay, ExternalLink } from "lucide-react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { 
-  PanelLeft,
-  PanelLeftClose
-} from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useSession } from "next-auth/react";
-import ProfileDropdown from './ProfileDropdown';
-import LogoutConfirmationDialog from "@/components/auth/LogoutConfirmationDialog";
-import HeaderClock from './HeaderClock';
+import CommandMenu from "./CommandMenu";
+import { cn } from "@/lib/utils";
 
-export default function Header({ onMenuToggle, isCollapsed }) {
-  const { data: session, status } = useSession();
-  const isLoading = status === "loading";
-  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-30">
-        <div className="flex items-center justify-between px-4 md:px-6 py-3">
-          {/* Left Section - Menu Toggle & Time */}
-          <div className="flex items-center space-x-4">
-            <div className="h-10 w-10 rounded-md bg-gray-200 animate-pulse"></div>
-            <div className="hidden md:flex flex-col space-y-2">
-              <div className="h-5 w-32 bg-gray-200 rounded animate-pulse"></div>
-              <div className="h-4 w-48 bg-gray-200 rounded animate-pulse"></div>
-            </div>
-          </div>
-
-          {/* Right Section - Profile */}
-          <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse"></div>
-          </div>
-        </div>
-
-        {/* Mobile Time Display */}
-        <div className="md:hidden px-4 pb-3">
-          <div className="flex flex-col space-y-2">
-            <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
-            <div className="h-3 w-3/4 bg-gray-200 rounded animate-pulse"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+export default function Header({ className }) {
   return (
-    <>
-      <motion.header 
-        className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-30"
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="flex items-center justify-between px-4 md:px-6 py-3">
-          {/* Left Section - Menu Toggle & Time */}
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onMenuToggle}
-              className="hover:bg-gray-100"
-            >
-              {isCollapsed ? (
-                <PanelLeft className="h-5 w-5" />
-              ) : (
-                <PanelLeftClose className="h-5 w-5" />
-              )}
-            </Button>
-            
-            <HeaderClock variant="desktop" />
-          </div>
+    <header
+      data-slot="admin-header"
+      className={cn(
+        "sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between border-b border-border/70 bg-background/95 px-4 backdrop-blur-md transition-all duration-200 ease-linear md:px-6",
+        className
+      )}
+    >
+      {/* Left Section: Sidebar Trigger */}
+      <div className="flex items-center gap-2">
+        <SidebarTrigger className="-ml-1" />
+      </div>
 
-          {/* Right Section - Profile */}
-          <div className="flex items-center space-x-3">
-            {/* Pass the logout dialog state setter to the ProfileDropdown */}
-            <ProfileDropdown 
-              session={session} 
-              onLogout={() => setShowLogoutDialog(true)} 
-            />
-          </div>
-        </div>
+      {/* Right Section: Action Bar (Command Menu, Kiosk Link) */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Spotlight Command Search */}
+        <CommandMenu />
 
-        {/* Mobile Time Display */}
-        <div className="md:hidden px-4 pb-3">
-          <div className="flex flex-col space-y-1">
-            <HeaderClock variant="mobile" />
-            <span className="text-xs text-gray-500 ml-6">
-              Hello, {session?.user?.name?.split(' ')[0] || "User"}
-            </span>
-          </div>
-        </div>
-      </motion.header>
+        <Separator orientation="vertical" className="h-4 bg-border/80 hidden sm:block" />
 
-      {/* Logout Confirmation Dialog */}
-      <LogoutConfirmationDialog 
-        open={showLogoutDialog}
-        onOpenChange={setShowLogoutDialog}
-      />
-    </>
+        {/* Jump to Kiosk Mode Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="hidden sm:inline-flex h-8 gap-1.5 rounded-lg border-border/80 bg-background px-2.5 text-xs font-medium text-foreground shadow-2xs hover:bg-muted"
+          render={<Link href="/" target="_blank" rel="noopener noreferrer" />}
+          nativeButton={false}
+        >
+          <MonitorPlay className="size-3.5 text-blue-600 dark:text-blue-400" />
+          <span>Kiosk Terminal</span>
+          <ExternalLink className="size-3 text-muted-foreground ml-0.5" />
+        </Button>
+      </div>
+    </header>
   );
 }

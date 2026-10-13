@@ -6,11 +6,15 @@ import DepartmentList from '@/components/admin/lists/DepartmentList';
 import PositionList from '@/components/admin/lists/PositionList';
 import LeaderList from '@/components/admin/lists/LeaderList';
 import PermissionGuard from '@/components/auth/PermissionGuard';
+import PageHeader from "@/components/admin/layout/PageHeader";
 
 export default function ListsPage() {
   return (
     <PermissionGuard module="data_management">
-      <div className="container mx-auto p-6 max-w-6xl">
+      <div className="container mx-auto p-6 max-w-6xl space-y-6">
+        {/* Page Top Header with Breadcrumbs & Clock */}
+        <PageHeader />
+
         <Tabs defaultValue="departments" className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="departments">Departments</TabsTrigger>

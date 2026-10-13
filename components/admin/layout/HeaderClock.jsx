@@ -1,23 +1,27 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Clock, Calendar } from 'lucide-react';
-import { formatDate, formatTime } from '@/utils/dateUtils';
+import { useState, useEffect } from "react";
+import { Clock, Calendar } from "lucide-react";
+import { formatDate, formatTime } from "@/utils/dateUtils";
+import { cn } from "@/lib/utils";
 
 /**
  * HeaderClock Component
  * 
- * Self-contained live clock for the admin header.
- * Encapsulates the 1-second interval to avoid re-rendering
- * parent header controls and dialogs.
+ * Displays the live attendance server time and current date in a modern
+ * pill-shaped badge with subtle border and pulsing live indicator.
  * 
  * @param {Object} props
  * @param {'desktop' | 'mobile'} [props.variant='desktop']
+ * @param {string} [props.className]
  */
-export default function HeaderClock({ variant = 'desktop' }) {
-  const [currentTime, setCurrentTime] = useState(new Date());
+export default function HeaderClock({ variant = "desktop", className }) {
+  const [currentTime, setCurrentTime] = useState(null);
 
   useEffect(() => {
+    // Set initial date on mount to prevent SSR hydration mismatch
+    setCurrentTime(new Date());
+
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
@@ -25,11 +29,20 @@ export default function HeaderClock({ variant = 'desktop' }) {
     return () => clearInterval(timer);
   }, []);
 
-  if (variant === 'mobile') {
+  if (!currentTime) {
     return (
-      <div className="flex items-center space-x-2">
-        <Clock className="h-4 w-4 text-blue-600" />
-        <span className="font-semibold text-gray-900 text-sm">
+      <div className={cn("h-8 w-36 rounded-full bg-muted/60 animate-pulse", className)} />
+    );
+  }
+
+  if (variant === "mobile") {
+    return (
+      <div className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/50 border border-border/60 text-xs font-medium text-foreground", className)}>
+        <span className="relative flex size-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+        </span>
+        <span className="font-mono font-semibold tabular-nums tracking-tight">
           {formatTime(currentTime)}
         </span>
       </div>
@@ -37,17 +50,32 @@ export default function HeaderClock({ variant = 'desktop' }) {
   }
 
   return (
-    <div className="hidden md:flex flex-col">
-      <div className="flex items-center space-x-2">
-        <Clock className="h-4 w-4 text-blue-600" />
-        <span className="text-lg font-semibold text-gray-900">
-          {formatTime(currentTime)}
-        </span>
+    <div
+      className={cn(
+        "inline-flex items-center gap-2.5 rounded-full border border-border/70 bg-background/80 px-3 py-1 text-xs shadow-2xs backdrop-blur-xs select-none",
+        className
+      )}
+    >
+      {/* Live status dot */}
+      <span className="relative flex size-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+      </span>
+
+      {/* Live Clock with monospaced tabular numbers */}
+      <div className="flex items-center gap-1.5 font-mono text-xs font-semibold tabular-nums text-foreground tracking-tight">
+        <Clock className="size-3.5 text-muted-foreground" />
+        <span>{formatTime(currentTime)}</span>
       </div>
-      <div className="flex items-center space-x-2">
-        <Calendar className="h-3 w-3 text-gray-500" />
-        <span className="text-sm text-gray-500">
-          {formatDate(currentTime)}
+
+      <div className="h-3 w-px bg-border/80" />
+
+      {/* Date */}
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+        <Calendar className="size-3.5 text-muted-foreground/80" />
+        <span className="hidden sm:inline">{formatDate(currentTime)}</span>
+        <span className="sm:hidden">
+          {currentTime.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
         </span>
       </div>
     </div>

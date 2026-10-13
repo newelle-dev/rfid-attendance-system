@@ -8,6 +8,7 @@ import DeleteConfirmationDialog from "@/components/ui/DeleteConfirmationDialog";
 import { Shield, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import PermissionGuard from "@/components/auth/PermissionGuard";
+import PageHeader from "@/components/admin/layout/PageHeader";
 import { toast } from "sonner";
 import { useRolePermissionsManager } from "@/hooks/useRolePermissionsManager";
 import PermissionsMatrix from "@/components/admin/role-permissions/PermissionsMatrix";
@@ -177,6 +178,9 @@ export default function RolePermissionsPage() {
   return (
     <PermissionGuard module="role_permissions" allowSuperadminOverride={true}>
       <div className="space-y-6">
+        {/* Page Top Header with Breadcrumbs & Clock */}
+        <PageHeader />
+
         {/* Page Header */}
         <motion.div 
           className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"

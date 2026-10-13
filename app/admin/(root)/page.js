@@ -7,6 +7,7 @@ import { useAccessibleModules, useAttendanceAccess } from "@/hooks/useModuleAcce
 import { MODULE_DEFINITIONS } from "@/constants/moduleDefinitions";
 import LogoutConfirmationDialog from "@/components/auth/LogoutConfirmationDialog";
 import DashboardHeader from "@/components/admin/dashboard/DashboardHeader";
+import PageHeader from "@/components/admin/layout/PageHeader";
 import ModuleAccessCards from "@/components/admin/dashboard/ModuleAccessCards";
 import QuickAction from "@/components/admin/dashboard/QuickAction";
 
@@ -52,7 +53,10 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Page Header with Breadcrumbs and Clock */}
+      <PageHeader />
+
       {/* Welcome Section with Logout */}
       <DashboardHeader 
         session={session} 

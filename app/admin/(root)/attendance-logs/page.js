@@ -6,6 +6,7 @@ import DashboardStats from "@/components/admin/attendance/DashboardStats";
 import AttendanceHeader from "@/components/admin/attendance/AttendanceHeader";
 import AttendanceStates from "@/components/admin/attendance/AttendanceStates";
 import PermissionGuard from "@/components/auth/PermissionGuard";
+import PageHeader from "@/components/admin/layout/PageHeader";
 import { useAttendanceLogsManager } from "@/hooks/useAttendanceLogsManager";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -61,10 +62,13 @@ export default function AttendanceLogsPage() {
   return (
     <PermissionGuard module="attendance_logs">
       <div 
-        className="container mx-auto px-4 py-8"
+        className="container mx-auto px-4 py-8 space-y-6"
         role="main"
         aria-label="Attendance Logs Management"
       >
+        {/* Page Top Header with Breadcrumbs & Clock */}
+        <PageHeader />
+
         {/* Dashboard Statistics */}
         <DashboardStats />
 

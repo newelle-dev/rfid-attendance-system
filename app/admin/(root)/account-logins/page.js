@@ -14,6 +14,7 @@ import DashboardStats from "@/components/admin/accounts/DashboardStats";
 import { useAccountLogins } from "@/hooks/useAccountLogins";
 import { ACCOUNT_ROLES } from "@/constants/accountConstants";
 import PermissionGuard from "@/components/auth/PermissionGuard";
+import PageHeader from "@/components/admin/layout/PageHeader";
 
 export default function AccountLoginsPage() {
   // State management
@@ -88,7 +89,10 @@ export default function AccountLoginsPage() {
 
   return (
     <PermissionGuard module="account_logins">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 space-y-6">
+        {/* Page Top Header with Breadcrumbs & Clock */}
+        <PageHeader />
+
         {/* Dashboard Stats */}
         <DashboardStats />
 

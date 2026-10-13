@@ -27,6 +27,7 @@ import EmployeeActions from "@/components/admin/employees/EmployeeActions";
 import { LoadingState, EmptyState, ErrorState } from "@/components/admin/employees/EmployeeStates";
 import { useEmployeesManager } from "@/hooks/useEmployeesManager";
 import PermissionGuard from "@/components/auth/PermissionGuard";
+import PageHeader from "@/components/admin/layout/PageHeader";
 
 /**
  * EmployeesManagementPage Component
@@ -153,7 +154,10 @@ export default function EmployeesManagementPage() {
 
   return (
     <PermissionGuard module="employees_management">
-      <div className="container mx-auto px-4 py-8 space-y-8">
+      <div className="container mx-auto px-4 py-8 space-y-6">
+        {/* Page Top Header with Breadcrumbs & Clock */}
+        <PageHeader />
+
         {/* Dashboard Statistics */}
         <DashboardStats />
 
