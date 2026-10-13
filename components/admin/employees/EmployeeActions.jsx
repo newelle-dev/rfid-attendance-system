@@ -34,15 +34,17 @@ const EmployeeActions = memo(({
     <div className="flex items-center gap-2">
       {/* Export/Import Dropdown */}
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            disabled={loading}
-            aria-label="Export or import employee data"
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Export/Import
-          </Button>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="outline"
+              disabled={loading}
+              aria-label="Export or import employee data"
+            />
+          }
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Export/Import
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem

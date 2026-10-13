@@ -66,21 +66,23 @@ export default function ProfileDropdown({ session }) {
   return (
     <>
       <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button 
-            ref={triggerRef}
-            variant="ghost" 
-            className="relative h-10 w-10 rounded-full focus-visible:ring-offset-2"
-          >
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={userInfo.image} alt={userInfo.name} />
-              <AvatarFallback className="bg-blue-500 text-white font-semibold">
-                {userInfo.initial}
-              </AvatarFallback>
-            </Avatar>
-          </Button>
+        <DropdownMenuTrigger
+          render={
+            <Button 
+              ref={triggerRef}
+              variant="ghost" 
+              className="relative h-10 w-10 rounded-full focus-visible:ring-offset-2"
+            />
+          }
+        >
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={userInfo.image} alt={userInfo.name} />
+            <AvatarFallback className="bg-blue-500 text-white font-semibold">
+              {userInfo.initial}
+            </AvatarFallback>
+          </Avatar>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end" forceMount>
+        <DropdownMenuContent className="w-56" align="end">
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium leading-none">
