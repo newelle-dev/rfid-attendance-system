@@ -151,7 +151,7 @@ async function hasRouteAccess(pathname, role) {
   }
 }
 
-export async function middleware(req) {
+export default async function proxy(req) {
   const { pathname } = req.nextUrl;
 
   // Allow access to /admin/login and API routes without authentication
@@ -205,6 +205,8 @@ export async function middleware(req) {
     return NextResponse.redirect(new URL("/admin", req.url));
   }
 }
+ 
+export { proxy };
 
 export const config = {
   matcher: [
