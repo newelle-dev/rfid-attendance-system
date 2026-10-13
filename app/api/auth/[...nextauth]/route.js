@@ -53,6 +53,47 @@ async function updateLastLogin(userId) {
   }
 }
 
+// Default permissions fallback (in case database role_permissions query fails)
+const defaultRolePermissions = {
+  superadmin: ['employees_management', 'data_management', 'account_logins', 'attendance_logs', 'role_permissions'],
+  admin: ['employees_management', 'data_management', 'account_logins', 'attendance_logs'],
+  security: ['attendance_logs'],
+  hr: ['attendance_logs', 'employees_management']
+};
+
+async function getPermissionsForRole(role) {
+  if (role === 'superadmin') {
+    return defaultRolePermissions.superadmin;
+  }
+
+  try {
+    const rows = await executeQuery({
+      query: `SELECT module, permission FROM role_permissions WHERE role = ?`,
+      values: [role]
+    });
+
+    const allowedModules = [];
+    rows.forEach(row => {
+      let parsed = row.permission;
+      if (typeof parsed === 'string') {
+        try {
+          parsed = JSON.parse(parsed);
+        } catch {
+          parsed = {};
+        }
+      }
+      if (parsed?.access === true) {
+        allowedModules.push(row.module);
+      }
+    });
+
+    return allowedModules.length > 0 ? allowedModules : (defaultRolePermissions[role] || []);
+  } catch (error) {
+    console.error(`Failed to fetch role permissions for role ${role}:`, error);
+    return defaultRolePermissions[role] || [];
+  }
+}
+
 export const authOptions = {
   providers: [
     CredentialsProvider({
@@ -112,10 +153,8 @@ export const authOptions = {
         token.id = user.id;
         token.username = user.username;
         token.employeeId = user.employeeId;
-        
-        // Store the user's role directly from the database
-        // The database now uses the same role values as the frontend
         token.role = user.role;
+        token.permissions = await getPermissionsForRole(user.role);
       }
       return token;
     },
@@ -126,6 +165,7 @@ export const authOptions = {
         session.user.username = token.username;
         session.user.employeeId = token.employeeId;
         session.user.role = token.role;
+        session.user.permissions = token.permissions || [];
       }
       return session;
     },

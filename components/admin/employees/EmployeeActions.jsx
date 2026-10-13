@@ -4,7 +4,7 @@
  */
 
 import React, { memo } from 'react';
-import { FiPlus, FiDownload, FiUpload } from 'react-icons/fi';
+import { Plus, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -40,7 +40,7 @@ const EmployeeActions = memo(({
             disabled={loading}
             aria-label="Export or import employee data"
           >
-            <FiDownload className="mr-2 h-4 w-4" />
+            <Download className="mr-2 h-4 w-4" />
             Export/Import
           </Button>
         </DropdownMenuTrigger>
@@ -50,7 +50,7 @@ const EmployeeActions = memo(({
             disabled={loading || totalEmployees === 0}
             className="cursor-pointer"
           >
-            <FiDownload className="mr-2 h-4 w-4" />
+            <Download className="mr-2 h-4 w-4" />
             Export to CSV
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -59,7 +59,7 @@ const EmployeeActions = memo(({
             disabled={loading}
             className="cursor-pointer"
           >
-            <FiUpload className="mr-2 h-4 w-4" />
+            <Upload className="mr-2 h-4 w-4" />
             Import from CSV
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -72,7 +72,7 @@ const EmployeeActions = memo(({
         aria-label="Add new employee"
         className="bg-primary hover:bg-primary/90"
       >
-        <FiPlus className="mr-2 h-4 w-4" />
+        <Plus className="mr-2 h-4 w-4" />
         Add Employee
       </Button>
     </div>

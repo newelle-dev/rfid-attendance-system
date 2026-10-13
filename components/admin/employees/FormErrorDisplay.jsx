@@ -4,7 +4,7 @@
  */
 
 import React, { memo } from 'react';
-import { FiAlertCircle, FiX } from 'react-icons/fi';
+import { AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -26,7 +26,7 @@ const FormErrorDisplay = memo(({
     <Card className={`border-destructive bg-destructive/5 ${className}`}>
       <CardContent className="pt-4">
         <div className="flex items-start gap-3">
-          <FiAlertCircle 
+          <AlertCircle 
             className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" 
             aria-hidden="true"
           />
@@ -48,7 +48,7 @@ const FormErrorDisplay = memo(({
               className="h-6 w-6 p-0 text-destructive hover:text-destructive/80"
               aria-label="Dismiss error"
             >
-              <FiX className="h-4 w-4" />
+              <X className="h-4 w-4" />
             </Button>
           )}
         </div>

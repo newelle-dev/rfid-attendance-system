@@ -25,6 +25,16 @@ export default function useAttendance() {
     return () => clearTimeout(timer);
   }, [employeeInfo]);
 
+  useEffect(() => {
+    if (!error) return;
+    setShowInstructions(false);
+    const timer = setTimeout(() => {
+      setError(null);
+      setShowInstructions(true);
+    }, SETTINGS.ERROR_CLEAR_TIMEOUT);
+    return () => clearTimeout(timer);
+  }, [error]);
+
   const clearEmployeeInfo = useCallback(() => {
     setEmployeeInfo(null);
     setAttendanceLog(null);

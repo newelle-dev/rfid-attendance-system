@@ -5,7 +5,7 @@
 
 import React, { memo } from 'react';
 import Image from 'next/image';
-import { FiX, FiUpload, FiAlertTriangle } from 'react-icons/fi';
+import { X, Upload, AlertTriangle } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -76,7 +76,7 @@ const EmployeeSettingsTab = memo(({
         <Card className="border-amber-200 bg-amber-50">
           <CardContent className="pt-4">
             <div className="flex items-start gap-3">
-              <FiAlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
               <div className="text-sm">
                 <p className="font-medium text-amber-800 mb-1">
                   Resigned Employee Notice
@@ -115,7 +115,7 @@ const EmployeeSettingsTab = memo(({
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
                 >
-                  <FiUpload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                  <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
                   <div className="space-y-2">
                     <p className="text-sm font-medium">
                       Click to upload or drag and drop
@@ -135,7 +135,7 @@ const EmployeeSettingsTab = memo(({
                 </div>
               ) : (
                 <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center bg-muted/30">
-                  <FiAlertTriangle className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                  <AlertTriangle className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
                   <p className="text-sm text-muted-foreground">
                     Photo upload disabled for resigned employees
                   </p>
@@ -168,7 +168,7 @@ const EmployeeSettingsTab = memo(({
                     onClick={onImageRemove}
                     aria-label="Remove photo"
                   >
-                    <FiX className="h-3 w-3" />
+                    <X className="h-3 w-3" />
                   </Button>
                 )}
               </div>

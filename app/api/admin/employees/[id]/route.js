@@ -1,5 +1,6 @@
 import { executeQuery } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { requireAdminSession } from "@/lib/auth";
 
 // Helper function to decode Base64 to binary with better error handling
 function decodeBase64ToBinary(base64String) {
@@ -20,6 +21,9 @@ function decodeBase64ToBinary(base64String) {
 
 // PUT: Update an Existing Employee
 export async function PUT(req, context) {
+  const { error } = await requireAdminSession(['admin', 'hr']);
+  if (error) return error;
+
   try {
     const { id } = await context.params; // 👈 Add await here
     const body = await req.json();

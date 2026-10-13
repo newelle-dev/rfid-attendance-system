@@ -1,33 +1,21 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { 
-  Clock,
   PanelLeft,
-  PanelLeftClose,
-  Calendar
+  PanelLeftClose
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { formatDate, formatTime } from '@/utils/dateUtils';
 import { useSession } from "next-auth/react";
 import ProfileDropdown from './ProfileDropdown';
 import LogoutConfirmationDialog from "@/components/auth/LogoutConfirmationDialog";
+import HeaderClock from './HeaderClock';
 
 export default function Header({ onMenuToggle, isCollapsed }) {
   const { data: session, status } = useSession();
   const isLoading = status === "loading";
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-
-  // Update time every second for the clock
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    
-    return () => clearInterval(timer);
-  }, []);
 
   // Loading state
   if (isLoading) {
@@ -84,20 +72,7 @@ export default function Header({ onMenuToggle, isCollapsed }) {
               )}
             </Button>
             
-            <div className="hidden md:flex flex-col">
-              <div className="flex items-center space-x-2">
-                <Clock className="h-4 w-4 text-blue-600" />
-                <span className="text-lg font-semibold text-gray-900">
-                  {formatTime(currentTime)}
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-3 w-3 text-gray-500" />
-                <span className="text-sm text-gray-500">
-                  {formatDate(currentTime)}
-                </span>
-              </div>
-            </div>
+            <HeaderClock variant="desktop" />
           </div>
 
           {/* Right Section - Profile */}
@@ -113,12 +88,7 @@ export default function Header({ onMenuToggle, isCollapsed }) {
         {/* Mobile Time Display */}
         <div className="md:hidden px-4 pb-3">
           <div className="flex flex-col space-y-1">
-            <div className="flex items-center space-x-2">
-              <Clock className="h-4 w-4 text-blue-600" />
-              <span className="font-semibold text-gray-900 text-sm">
-                {currentTime.toISOString().slice(0, 19).replace('T', ' ')}
-              </span>
-            </div>
+            <HeaderClock variant="mobile" />
             <span className="text-xs text-gray-500 ml-6">
               Hello, {session?.user?.name?.split(' ')[0] || "User"}
             </span>

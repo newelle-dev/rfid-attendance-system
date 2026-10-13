@@ -1,10 +1,14 @@
 import { executeQuery } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { requireAdminSession } from "@/lib/auth";
 
 // Get a specific department
-export async function GET(request, { params }) {
+export async function GET(request, context) {
+  const { error } = await requireAdminSession(['admin', 'hr']);
+  if (error) return error;
+
   try {
-    const { id } = params;
+    const { id } = await context.params;
     
     const query = `SELECT id, name FROM departments WHERE id = ?`;
     const departments = await executeQuery({ query, values: [id] });
@@ -27,9 +31,12 @@ export async function GET(request, { params }) {
 }
 
 // Update a department
-export async function PUT(request, { params }) {
+export async function PUT(request, context) {
+  const { error } = await requireAdminSession(['admin']);
+  if (error) return error;
+
   try {
-    const { id } = params;
+    const { id } = await context.params;
     const { name } = await request.json();
     
     // Validate input
@@ -69,9 +76,12 @@ export async function PUT(request, { params }) {
 }
 
 // Delete a department
-export async function DELETE(request, { params }) {
+export async function DELETE(request, context) {
+  const { error } = await requireAdminSession(['admin']);
+  if (error) return error;
+
   try {
-    const { id } = params;
+    const { id } = await context.params;
     
     // Check if department is in use by any employee
     const checkQuery = `SELECT COUNT(*) as count FROM employees WHERE department_id = ?`;

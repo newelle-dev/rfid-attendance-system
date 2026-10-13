@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSnackbar } from "notistack";
-import { FiPlus, FiFilter, FiRefreshCw, FiSearch } from "react-icons/fi";
+import { Plus, Filter, RefreshCw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import FilterDialog from "@/components/admin/accounts/FilterDialog";
 import DashboardStats from "@/components/admin/accounts/DashboardStats";
 import { useAccountLogins } from "@/hooks/useAccountLogins";
 import { ACCOUNT_ROLES } from "@/constants/accountConstants";
+import PermissionGuard from "@/components/auth/PermissionGuard";
 
 export default function AccountLoginsPage() {
   // State management
@@ -87,82 +88,84 @@ export default function AccountLoginsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Dashboard Stats */}
-      <DashboardStats />
+    <PermissionGuard module="account_logins">
+      <div className="container mx-auto px-4 py-8">
+        {/* Dashboard Stats */}
+        <DashboardStats />
 
-      {/* Main Account Management Card */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Account Logins</CardTitle>
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search accounts..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                className="pl-10 w-64"
+        {/* Main Account Management Card */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Account Logins</CardTitle>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search accounts..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  className="pl-10 w-64"
+                />
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setIsFilterDialogOpen(true)}
+              >
+                <Filter className="mr-2 h-4 w-4" /> Filter
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={handleRefresh}
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
+              </Button>
+              <Button onClick={() => handleOpenForm()}>
+                <Plus className="mr-2 h-4 w-4" /> Add Account
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center items-center py-8">
+                <RefreshCw className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Loading...</span>
+              </div>
+            ) : (
+              <AccountTable 
+                accounts={accounts}
+                totalAccounts={totalAccounts}
+                pagination={pagination}
+                setPagination={setPagination}
+                onEdit={handleOpenForm}
+                onDelete={handleDeleteAccount}
+                session={session}
               />
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => setIsFilterDialogOpen(true)}
-            >
-              <FiFilter className="mr-2 h-4 w-4" /> Filter
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={handleRefresh}
-            >
-              <FiRefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
-            </Button>
-            <Button onClick={() => handleOpenForm()}>
-              <FiPlus className="mr-2 h-4 w-4" /> Add Account
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center items-center py-8">
-              <FiRefreshCw className="h-6 w-6 animate-spin" />
-              <span className="ml-2">Loading...</span>
-            </div>
-          ) : (
-            <AccountTable 
-              accounts={accounts}
-              totalAccounts={totalAccounts}
-              pagination={pagination}
-              setPagination={setPagination}
-              onEdit={handleOpenForm}
-              onDelete={handleDeleteAccount}
-              session={session}
-            />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Account Form Dialog */}
+        <AccountFormDialog
+          open={isFormDialogOpen}
+          onOpenChange={setIsFormDialogOpen}
+          account={currentAccount}
+          onSubmit={handleAccountFormSubmit}
+          availableRoles={ACCOUNT_ROLES.filter(role => 
+            // Only super admin can create/edit super admin accounts
+            role.id !== "superadmin" || canManageSuperAdmin
           )}
-        </CardContent>
-      </Card>
+          canManageSuperAdmin={canManageSuperAdmin}
+        />
 
-      {/* Account Form Dialog */}
-      <AccountFormDialog
-        open={isFormDialogOpen}
-        onOpenChange={setIsFormDialogOpen}
-        account={currentAccount}
-        onSubmit={handleAccountFormSubmit}
-        availableRoles={ACCOUNT_ROLES.filter(role => 
-          // Only super admin can create/edit super admin accounts
-          role.id !== "superadmin" || canManageSuperAdmin
-        )}
-        canManageSuperAdmin={canManageSuperAdmin}
-      />
-
-      {/* Filter Dialog */}
-      <FilterDialog
-        open={isFilterDialogOpen}
-        onOpenChange={setIsFilterDialogOpen}
-        filters={filters}
-        setFilters={setFilters}
-        availableRoles={ACCOUNT_ROLES}
-      />
-    </div>
+        {/* Filter Dialog */}
+        <FilterDialog
+          open={isFilterDialogOpen}
+          onOpenChange={setIsFilterDialogOpen}
+          filters={filters}
+          setFilters={setFilters}
+          availableRoles={ACCOUNT_ROLES}
+        />
+      </div>
+    </PermissionGuard>
   );
 }

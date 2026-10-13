@@ -1,80 +1,12 @@
 import { executeQuery } from "@/lib/db";
 import { NextResponse } from "next/server";
-
-// Update a department
-export async function PUT(request, { params }) {
-  try {
-    const { id } = params;
-    const { name } = await request.json();
-    
-    // Validate input
-    if (!name) {
-      return NextResponse.json(
-        { error: "Department name is required" },
-        { status: 400 }
-      );
-    }
-    
-    // Check for duplicate (excluding current department)
-    const checkQuery = `SELECT id FROM departments WHERE name = ? AND id != ?`;
-    const existing = await executeQuery({ 
-      query: checkQuery, 
-      values: [name, id] 
-    });
-    
-    if (existing.length > 0) {
-      return NextResponse.json(
-        { error: "A department with this name already exists" },
-        { status: 409 }
-      );
-    }
-    
-    // Update department
-    const updateQuery = `UPDATE departments SET name = ? WHERE id = ?`;
-    await executeQuery({ query: updateQuery, values: [name, id] });
-    
-    return NextResponse.json({ id: Number(id), name });
-  } catch (error) {
-    console.error("Failed to update department:", error);
-    return NextResponse.json(
-      { error: "Failed to update department" },
-      { status: 500 }
-    );
-  }
-}
-
-// Delete a department
-export async function DELETE(request, { params }) {
-  try {
-    const { id } = params;
-    
-    // Check if department is in use by any employee
-    const checkQuery = `SELECT COUNT(*) as count FROM employees WHERE department_id = ?`;
-    const result = await executeQuery({ query: checkQuery, values: [id] });
-    
-    if (result[0].count > 0) {
-      return NextResponse.json(
-        { error: "Cannot delete department that has employees assigned to it" },
-        { status: 400 }
-      );
-    }
-    
-    // Delete department
-    const deleteQuery = `DELETE FROM departments WHERE id = ?`;
-    await executeQuery({ query: deleteQuery, values: [id] });
-    
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Failed to delete department:", error);
-    return NextResponse.json(
-      { error: "Failed to delete department" },
-      { status: 500 }
-    );
-  }
-}
+import { requireAdminSession } from "@/lib/auth";
 
 // Get all positions with optional pagination and search
 export async function GET(request) {
+  const { error } = await requireAdminSession(['admin', 'hr']);
+  if (error) return error;
+
   try {
     const { searchParams } = new URL(request.url);
     
@@ -146,6 +78,9 @@ export async function GET(request) {
 
 // Add a new position with manual ID generation
 export async function POST(request) {
+  const { error } = await requireAdminSession(['admin']);
+  if (error) return error;
+
   try {
     const { name, is_leader } = await request.json();
     
@@ -171,17 +106,12 @@ export async function POST(request) {
       );
     }
     
-    // Get the maximum ID and increment by 1
-    const maxIdQuery = `SELECT MAX(id) as maxId FROM positions`;
-    const maxIdResult = await executeQuery({ query: maxIdQuery });
-    const nextId = (maxIdResult[0].maxId || 0) + 1;
+    // Insert new position using native AUTO_INCREMENT
+    const insertQuery = `INSERT INTO positions (name, is_leader) VALUES (?, ?)`;
+    const result = await executeQuery({ query: insertQuery, values: [sanitizedName, is_leader ? 1 : 0] });
     
-    // Insert new position with explicit ID
-    const insertQuery = `INSERT INTO positions (id, name, is_leader) VALUES (?, ?, ?)`;
-    await executeQuery({ query: insertQuery, values: [nextId, sanitizedName, is_leader ? 1 : 0] });
-    
-    // Return the created position with its ID
-    const position = { id: nextId, name: sanitizedName, is_leader: is_leader ? 1 : 0 };
+    // Return the created position with its generated ID
+    const position = { id: result.insertId, name: sanitizedName, is_leader: is_leader ? 1 : 0 };
     
     return NextResponse.json({ 
       message: "Position created successfully",

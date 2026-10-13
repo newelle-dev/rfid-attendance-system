@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { 
+  LayoutDashboard,
   Calendar,
   Clipboard,
   Users,
@@ -18,6 +19,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from "next-auth/react";
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import SideNavSkeleton from './SideNavSkeleton';
+
+// Universal Dashboard navigation item for all authenticated admin users
+const DASHBOARD_ITEM = {
+  name: 'Dashboard',
+  href: '/admin',
+  icon: <LayoutDashboard className="h-[18px] w-[18px]" />,
+};
 
 // Module definitions with their corresponding routes and icons
 const MODULE_DEFINITIONS = {
@@ -58,23 +66,23 @@ export default function SideNav({ collapsed }) {
   const navItems = React.useMemo(() => {
     if (!session?.user?.role) return [];
 
+    let items = [];
     if (permissions) {
       const allowed = Object.entries(MODULE_DEFINITIONS)
         .filter(([moduleKey]) => permissions[moduleKey]?.access)
         .map(([, moduleInfo]) => moduleInfo);
 
       if (session.user.role === 'superadmin' && allowed.length === 0) {
-        return Object.values(MODULE_DEFINITIONS);
+        items = Object.values(MODULE_DEFINITIONS);
+      } else {
+        items = allowed;
       }
-      return allowed;
+    } else if (session.user.role === 'superadmin') {
+      items = Object.values(MODULE_DEFINITIONS);
     }
 
-    // Fallback for superadmin while loading or if permissions fetch fails
-    if (session.user.role === 'superadmin') {
-      return Object.values(MODULE_DEFINITIONS);
-    }
-
-    return [];
+    // Always include Dashboard as the first item for any authenticated user
+    return [DASHBOARD_ITEM, ...items];
   }, [permissions, session?.user?.role]);
 
   // Show skeleton loading state while session or permissions are loading
@@ -106,16 +114,18 @@ export default function SideNav({ collapsed }) {
                 className="flex items-center justify-center w-full"
               >
                 {/* Compact logo for collapsed state */}
-                <div className="relative w-10 h-10 bg-transparent rounded-lg flex items-center justify-center overflow-hidden">
-                  <Image 
-                    src="/ew-logo-compact.png" 
-                    alt="EastWest BPO" 
-                    width={40} 
-                    height={40}
-                    className="object-contain"
-                    priority
-                  />
-                </div>
+                <Link href="/admin" className="block focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
+                  <div className="relative w-10 h-10 bg-transparent rounded-lg flex items-center justify-center overflow-hidden">
+                    <Image 
+                      src="/ew-logo-compact.png" 
+                      alt="EastWest BPO" 
+                      width={40} 
+                      height={40}
+                      className="object-contain"
+                      priority
+                    />
+                  </div>
+                </Link>
               </motion.div>
             ) : (
               <motion.div
@@ -127,15 +137,17 @@ export default function SideNav({ collapsed }) {
                 className="flex items-center w-full justify-center"
               >
                 {/* Full logo for expanded state */}
-                <div className="relative w-full h-12">
-                  <Image 
-                    src="/ew-logo-full.png"
-                    alt="EastWest BPO MCI"
-                    fill
-                    className="object-contain"
-                    priority
-                  />
-                </div>
+                <Link href="/admin" className="w-full block focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
+                  <div className="relative w-full h-12">
+                    <Image 
+                      src="/ew-logo-full.png" 
+                      alt="EastWest BPO MCI" 
+                      fill
+                      className="object-contain"
+                      priority
+                    />
+                  </div>
+                </Link>
               </motion.div>
             )}
           </AnimatePresence>
@@ -145,7 +157,9 @@ export default function SideNav({ collapsed }) {
         <nav className="flex-1 py-4 overflow-y-auto">
           <ul className="space-y-2 px-3">
             {navItems.map((item, index) => {
-              const isActive = pathname.startsWith(item.href);
+              const isActive = item.href === '/admin' 
+                ? pathname === '/admin' 
+                : pathname.startsWith(item.href);
               
               return (
                 <motion.li 

@@ -21,7 +21,7 @@ import {
   ChevronsRightIcon,
   PlusIcon
 } from "lucide-react";
-import DeleteConfirmationDialog from "./DeleteConfirmationDialog";
+import DeleteConfirmationDialog from "@/components/ui/DeleteConfirmationDialog";
 
 export default function ListTable({ 
   items, 

@@ -4,7 +4,7 @@
  */
 
 import React, { memo } from 'react';
-import { FiFilter, FiRefreshCw, FiX } from 'react-icons/fi';
+import { Filter, RefreshCw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -75,7 +75,7 @@ const SearchAndFilterControls = memo(({
             className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
             aria-label="Clear search"
           >
-            <FiX className="h-4 w-4" />
+            <X className="h-4 w-4" />
           </Button>
         )}
       </div>
@@ -98,7 +98,7 @@ const SearchAndFilterControls = memo(({
             disabled={loading}
             aria-label="Reset all filters and search"
           >
-            <FiX className="mr-2 h-4 w-4" />
+            <X className="mr-2 h-4 w-4" />
             Reset
           </Button>
         )}
@@ -110,7 +110,7 @@ const SearchAndFilterControls = memo(({
           disabled={loading}
           aria-label={`Open filter dialog${hasActiveFilters ? ` (${activeFiltersCount} active)` : ''}`}
         >
-          <FiFilter className="mr-2 h-4 w-4" />
+          <Filter className="mr-2 h-4 w-4" />
           Filter
           {hasActiveFilters && (
             <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 text-xs">
@@ -126,7 +126,7 @@ const SearchAndFilterControls = memo(({
           disabled={loading}
           aria-label="Refresh employee data"
         >
-          <FiRefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>

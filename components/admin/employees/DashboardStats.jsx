@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FiRefreshCw } from "react-icons/fi";
+import { RefreshCw } from "lucide-react";
 
 export default function DashboardStats() {
   const [stats, setStats] = useState({
@@ -40,7 +40,7 @@ export default function DashboardStats() {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
       {loading ? (
         <div className="flex justify-center items-center py-8">
-          <FiRefreshCw className="h-6 w-6 animate-spin" />
+          <RefreshCw className="h-6 w-6 animate-spin" />
           <span className="ml-2">Loading stats...</span>
         </div>
       ) : (

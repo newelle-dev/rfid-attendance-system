@@ -33,17 +33,10 @@ export default function LoginPage() {
     setCurrentDateTime(AUTH_CONSTANTS.CURRENT_YEAR);
   }, []);
   
-  // Updated role-based redirect logic
+  // Redirect authenticated users to the admin dashboard
   useEffect(() => {
     if (session?.user?.role) {
-      const role = session.user.role;
-      if (['superadmin', 'admin'].includes(role)) {
-        router.replace('/admin/employees-management');
-      } else if (['security', 'hr'].includes(role)) {
-        router.replace('/admin/attendance-logs');
-      } else {
-        router.replace('/admin');
-      }
+      router.replace('/admin');
     }
   }, [session, router]);
   

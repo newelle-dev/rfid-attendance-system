@@ -9,10 +9,7 @@ import {
   getFilteredRowModel,
   flexRender,
 } from "@tanstack/react-table";
-import {
-  FiEdit,
-  FiTrash2,
-} from "react-icons/fi";
+import { Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -37,8 +34,8 @@ export default function EmployeeTable({
   employees, 
   totalEmployees, 
   pagination, 
-  setPagination,
-  onEdit,
+  setPagination, 
+  onEdit, 
 }) {
   const [sorting, setSorting] = useState([]);
   
@@ -124,7 +121,7 @@ export default function EmployeeTable({
             size="sm"
             onClick={() => onEdit(row.original)}
           >
-            <FiEdit className="h-4 w-4" />
+            <Edit className="h-4 w-4" />
           </Button>
         </div>
       ),

@@ -1,5 +1,6 @@
 import { executeQuery } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { requireAdminSession } from "@/lib/auth";
 
 // Helper function to decode Base64 to binary
 function decodeBase64ToBinary(base64String) {
@@ -8,6 +9,9 @@ function decodeBase64ToBinary(base64String) {
 
 // GET: Fetch Employees with Search, Filters, and Pagination
 export async function GET(req) {
+  const { error } = await requireAdminSession(['admin', 'hr']);
+  if (error) return error;
+
   try {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1");
@@ -106,6 +110,9 @@ export async function GET(req) {
 
 // POST: Add a New Employee
 export async function POST(req) {
+  const { error } = await requireAdminSession(['admin', 'hr']);
+  if (error) return error;
+
   try {
     const body = await req.json();
     const { ashima_id, name, department_id, position_id, leader, rfid_tag, photo, emp_stat } = body;
@@ -160,6 +167,9 @@ export async function POST(req) {
 
 // DELETE: Delete an Employee
 export async function DELETE(req) {
+  const { error } = await requireAdminSession(['admin', 'hr']);
+  if (error) return error;
+
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");

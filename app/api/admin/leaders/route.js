@@ -1,7 +1,11 @@
 import { executeQuery } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { requireAdminSession } from "@/lib/auth";
 
 export async function GET(request) {
+  const { error } = await requireAdminSession(['admin', 'hr']);
+  if (error) return error;
+
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');

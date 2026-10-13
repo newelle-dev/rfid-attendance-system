@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { FiUsers, FiShield, FiUserPlus, FiUserCheck } from "react-icons/fi";
+import { Users, Shield, UserPlus, UserCheck } from "lucide-react";
 
 export default function DashboardStats() {
   const [stats, setStats] = useState({
@@ -50,7 +50,7 @@ export default function DashboardStats() {
               {stats.loading ? <span className="animate-pulse">...</span> : stats.totalAccounts}
             </p>
           </div>
-          <FiUsers className="h-10 w-10 text-blue-500 opacity-80" />
+          <Users className="h-10 w-10 text-blue-500 opacity-80" />
         </CardContent>
       </Card>
 
@@ -63,7 +63,7 @@ export default function DashboardStats() {
               {stats.loading ? <span className="animate-pulse">...</span> : stats.adminAccounts}
             </p>
           </div>
-          <FiShield className="h-10 w-10 text-purple-500 opacity-80" />
+          <Shield className="h-10 w-10 text-purple-500 opacity-80" />
         </CardContent>
       </Card>
       
@@ -76,7 +76,7 @@ export default function DashboardStats() {
               {stats.loading ? <span className="animate-pulse">...</span> : stats.securityAccounts}
             </p>
           </div>
-          <FiUserCheck className="h-10 w-10 text-green-500 opacity-80" />
+          <UserCheck className="h-10 w-10 text-green-500 opacity-80" />
         </CardContent>
       </Card>
       
@@ -89,7 +89,7 @@ export default function DashboardStats() {
               {stats.loading ? <span className="animate-pulse">...</span> : stats.recentAccounts}
             </p>
           </div>
-          <FiUserPlus className="h-10 w-10 text-amber-500 opacity-80" />
+          <UserPlus className="h-10 w-10 text-amber-500 opacity-80" />
         </CardContent>
       </Card>
     </div>

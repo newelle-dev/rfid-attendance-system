@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { FiEdit2, FiTrash2 } from "react-icons/fi";
+import { Edit2, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/utils/dateUtils";
 import {
@@ -151,7 +151,7 @@ export default function AccountTable({
                           : "Edit account"
                       }
                     >
-                      <FiEdit2 className="h-4 w-4" />
+                      <Edit2 className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -167,7 +167,7 @@ export default function AccountTable({
                           : "Delete account"
                       }
                     >
-                      <FiTrash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </TableCell>

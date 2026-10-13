@@ -1,7 +1,11 @@
 import { executeQuery } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { requireAdminSession } from "@/lib/auth";
 
 export async function GET() {
+  const { error } = await requireAdminSession(['admin', 'hr']);
+  if (error) return error;
+
   try {
     const activeQuery = `SELECT COUNT(*) AS total FROM employees WHERE status = 'active'`;
     const inactiveQuery = `SELECT COUNT(*) AS total FROM employees WHERE status = 'inactive'`;

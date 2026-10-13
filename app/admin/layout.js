@@ -5,10 +5,10 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
 export default function AdminLayout({ children }) {
   return (
-    <SessionProvider>
-      <ErrorBoundary>
+    <ErrorBoundary>
+      <SessionProvider>
         {children}
-      </ErrorBoundary>
-    </SessionProvider>
+      </SessionProvider>
+    </ErrorBoundary>
   );
 }

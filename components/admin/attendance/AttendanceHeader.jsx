@@ -7,7 +7,7 @@
  * @component
  */
 
-import { FiFilter, FiDownload, FiSearch, FiX } from "react-icons/fi";
+import { Filter, Download, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -60,7 +60,7 @@ export default function AttendanceHeader({
                 aria-label="Clear all filters"
                 title="Clear all filters"
               >
-                <FiX className="h-3 w-3" />
+                <X className="h-3 w-3" />
               </Button>
             </Badge>
           </div>
@@ -75,7 +75,7 @@ export default function AttendanceHeader({
       >
         {/* Search Input */}
         <div className="relative">
-          <FiSearch 
+          <Search 
             className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
             aria-hidden="true"
           />
@@ -95,7 +95,7 @@ export default function AttendanceHeader({
           aria-label="Open filters dialog"
           className="flex items-center gap-2"
         >
-          <FiFilter className="h-4 w-4" aria-hidden="true" />
+          <Filter className="h-4 w-4" aria-hidden="true" />
           Filter
         </Button>
 
@@ -107,7 +107,7 @@ export default function AttendanceHeader({
           aria-label={exporting ? "Exporting logs..." : "Export logs to CSV"}
           className="flex items-center gap-2"
         >
-          <FiDownload className="h-4 w-4" aria-hidden="true" />
+          <Download className="h-4 w-4" aria-hidden="true" />
           {exporting ? "Exporting..." : "Export CSV"}
         </Button>
       </div>

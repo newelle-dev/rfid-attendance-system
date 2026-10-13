@@ -9,6 +9,7 @@ export const ANIMATIONS = {
 // System settings
 export const SETTINGS = {
   AUTO_CLEAR_TIMEOUT: 20000, // 20 seconds
+  ERROR_CLEAR_TIMEOUT: 4000, // 4 seconds auto-dismiss for error banners
 };
 
 // API endpoints

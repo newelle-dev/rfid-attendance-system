@@ -1,10 +1,14 @@
 import { executeQuery } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { requireAdminSession } from "@/lib/auth";
 
 // Get a specific position
-export async function GET(request, { params }) {
+export async function GET(request, context) {
+  const { error } = await requireAdminSession(['admin', 'hr']);
+  if (error) return error;
+
   try {
-    const { id } = params;
+    const { id } = await context.params;
     
     const query = `SELECT id, name FROM positions WHERE id = ?`;
     const positions = await executeQuery({ query, values: [id] });
@@ -27,9 +31,12 @@ export async function GET(request, { params }) {
 }
 
 // Update a position
-export async function PUT(request, { params }) {
+export async function PUT(request, context) {
+  const { error } = await requireAdminSession(['admin']);
+  if (error) return error;
+
   try {
-    const { id } = params;
+    const { id } = await context.params;
     const { name, is_leader } = await request.json();
     
     // Validate input
@@ -75,9 +82,12 @@ export async function PUT(request, { params }) {
 }
 
 // Delete a position
-export async function DELETE(request, { params }) {
+export async function DELETE(request, context) {
+  const { error } = await requireAdminSession(['admin']);
+  if (error) return error;
+
   try {
-    const { id } = params;
+    const { id } = await context.params;
     
     // Check if position is in use by any employee
     const checkQuery = `SELECT COUNT(*) as count FROM employees WHERE position_id = ?`;

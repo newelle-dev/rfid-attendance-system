@@ -1,8 +1,12 @@
 import { executeQuery } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { requireAdminSession } from "@/lib/auth";
 
 // Get all departments with optional pagination and search
 export async function GET(request) {
+  const { error } = await requireAdminSession(['admin', 'hr']);
+  if (error) return error;
+
   try {
     const { searchParams } = new URL(request.url);
     
@@ -71,6 +75,9 @@ export async function GET(request) {
 
 // Add a new department
 export async function POST(request) {
+  const { error } = await requireAdminSession(['admin']);
+  if (error) return error;
+
   try {
     const { name } = await request.json();
     
@@ -96,17 +103,12 @@ export async function POST(request) {
       );
     }
     
-    // Get the maximum ID and increment by 1
-    const maxIdQuery = `SELECT MAX(id) as maxId FROM departments`;
-    const maxIdResult = await executeQuery({ query: maxIdQuery });
-    const nextId = (maxIdResult[0].maxId || 0) + 1;
+    // Insert new department using native AUTO_INCREMENT
+    const insertQuery = `INSERT INTO departments (name) VALUES (?)`;
+    const result = await executeQuery({ query: insertQuery, values: [sanitizedName] });
     
-    // Insert new department with explicit ID
-    const insertQuery = `INSERT INTO departments (id, name) VALUES (?, ?)`;
-    const result = await executeQuery({ query: insertQuery, values: [nextId, sanitizedName] });
-    
-    // Return the created department with its ID
-    const department = { id: nextId, name: sanitizedName };
+    // Return the created department with its generated ID
+    const department = { id: result.insertId, name: sanitizedName };
     
     return NextResponse.json({ 
       message: "Department created successfully",

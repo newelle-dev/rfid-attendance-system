@@ -14,6 +14,7 @@ import QuickAction from "@/components/admin/dashboard/QuickAction";
  * Admin Dashboard Component
  * 
  * Main dashboard page for the RFID Attendance System admin interface.
+ * Rendered within the (root) layout sharing SideNav and Header.
  * Provides an overview of system statistics, quick access to modules based on
  * user permissions, and personalized user experience.
  * 
@@ -51,7 +52,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <main className="container mx-auto px-4 py-8" role="main">
+    <div className="space-y-8 max-w-7xl mx-auto">
       {/* Welcome Section with Logout */}
       <DashboardHeader 
         session={session} 
@@ -72,6 +73,6 @@ export default function AdminDashboard() {
         open={logoutDialogOpen} 
         onOpenChange={setLogoutDialogOpen} 
       />
-    </main>
+    </div>
   );
 }

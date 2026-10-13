@@ -4,7 +4,7 @@
  */
 
 import React, { memo } from 'react';
-import { FiRefreshCw, FiUsers, FiUserPlus } from 'react-icons/fi';
+import { RefreshCw, Users, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -15,7 +15,7 @@ import { Card, CardContent } from '@/components/ui/card';
  */
 export const LoadingState = memo(({ message = 'Loading employees...' }) => (
   <div className="flex flex-col items-center justify-center py-12 space-y-4">
-    <FiRefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+    <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
     <p className="text-muted-foreground" aria-live="polite">
       {message}
     </p>
@@ -39,7 +39,7 @@ export const EmptyState = memo(({
   <Card className="border-dashed">
     <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
       <div className="rounded-full bg-muted p-4">
-        <FiUsers className="h-8 w-8 text-muted-foreground" />
+        <Users className="h-8 w-8 text-muted-foreground" />
       </div>
       
       <div className="text-center space-y-2">
@@ -61,13 +61,13 @@ export const EmptyState = memo(({
               Clear filters
             </Button>
             <Button onClick={onAddEmployee}>
-              <FiUserPlus className="mr-2 h-4 w-4" />
+              <UserPlus className="mr-2 h-4 w-4" />
               Add Employee
             </Button>
           </>
         ) : (
           <Button onClick={onAddEmployee}>
-            <FiUserPlus className="mr-2 h-4 w-4" />
+            <UserPlus className="mr-2 h-4 w-4" />
             Add First Employee
           </Button>
         )}
@@ -88,7 +88,7 @@ export const ErrorState = memo(({ error, onRetry }) => (
   <Card className="border-destructive">
     <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
       <div className="rounded-full bg-destructive/10 p-4">
-        <FiRefreshCw className="h-8 w-8 text-destructive" />
+        <RefreshCw className="h-8 w-8 text-destructive" />
       </div>
       
       <div className="text-center space-y-2">
@@ -101,7 +101,7 @@ export const ErrorState = memo(({ error, onRetry }) => (
       </div>
 
       <Button onClick={onRetry} variant="outline">
-        <FiRefreshCw className="mr-2 h-4 w-4" />
+        <RefreshCw className="mr-2 h-4 w-4" />
         Try Again
       </Button>
     </CardContent>

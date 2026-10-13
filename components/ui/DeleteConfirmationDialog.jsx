@@ -49,18 +49,30 @@ export default function DeleteConfirmationDialog({
   open = false,
   onOpenChange,
   onConfirm,
+  onConfirmDelete,
   loading = false,
   title = "Confirm Deletion",
   description,
+  item,
   itemName,
   itemType,
   warningText,
-  confirmButtonText = "Delete",
+  confirmButtonText,
   cancelButtonText = "Cancel",
   destructive = true,
   consequences = [],
 }) {
   const [isConfirming, setIsConfirming] = useState(false);
+
+  // Resolve item naming and types when item object is passed (e.g., from ListTable)
+  const resolvedItemName = item?.name || itemName;
+  const resolvedItemType = itemType || (item ? itemName : undefined);
+  const resolvedDescription = description || (
+    resolvedItemName ? `Are you sure you want to delete ${resolvedItemName}?` : undefined
+  );
+  const resolvedConfirmText = confirmButtonText || (
+    resolvedItemType ? `Delete ${resolvedItemType}` : "Delete"
+  );
 
   /**
    * Handles the confirm action with loading state
@@ -70,7 +82,8 @@ export default function DeleteConfirmationDialog({
     
     setIsConfirming(true);
     try {
-      await onConfirm?.();
+      const confirmAction = onConfirm || onConfirmDelete;
+      await confirmAction?.();
     } finally {
       setIsConfirming(false);
     }
@@ -142,18 +155,18 @@ export default function DeleteConfirmationDialog({
             className="text-sm text-muted-foreground space-y-3"
           >
             {/* Main description */}
-            {description && (
-              <p>{description}</p>
+            {resolvedDescription && (
+              <p>{resolvedDescription}</p>
             )}
 
             {/* Item being deleted */}
-            {itemName && (
+            {resolvedItemName && (
               <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
                 <span className="text-sm font-medium">
-                  {itemType ? `${itemType}:` : 'Item:'}
+                  {resolvedItemType ? `${resolvedItemType}:` : 'Item:'}
                 </span>
                 <Badge variant="secondary" className="font-mono">
-                  {itemName}
+                  {resolvedItemName}
                 </Badge>
               </div>
             )}
@@ -210,7 +223,7 @@ export default function DeleteConfirmationDialog({
                 {destructive ? 'Deleting...' : 'Processing...'}
               </>
             ) : (
-              confirmButtonText
+              resolvedConfirmText
             )}
           </Button>
           
