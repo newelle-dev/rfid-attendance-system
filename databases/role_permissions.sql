@@ -30,5 +30,3 @@ INSERT INTO role_permissions (role, module, permission) VALUES
 ON DUPLICATE KEY UPDATE
 permission = VALUES(permission),
 updated_at = CURRENT_TIMESTAMP;
-permission = VALUES(permission),
-updated_at = CURRENT_TIMESTAMP;

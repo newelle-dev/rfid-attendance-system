@@ -160,8 +160,6 @@ CREATE TABLE `employees` (
 --
 
 INSERT INTO `employees` (`id`, `ashima_id`, `name`, `rfid_tag`, `photo`, `emp_stat`, `status`, `department_id`, `position_id`, `last_active`, `leader`) VALUES
-INSERT INTO `employees` (`id`, `ashima_id`, `name`, `rfid_tag`, `photo`, `emp_stat`, `status`, `department_id`, `position_id`, `last_active`, `leader`) VALUES
-INSERT INTO `employees` (`id`, `ashima_id`, `name`, `rfid_tag`, `photo`, `emp_stat`, `status`, `department_id`, `position_id`, `last_active`, `leader`) VALUES
 (114, '21-03493', 'ARBY CRISOSTOMO DELOS REYES', '1336003435', NULL, 'Regular', 'active', 19, 42, NULL, NULL),
 (115, '21-03494', 'ARIANE ROSE ADONA PANGILINAN', '1331911259', NULL, 'Regular', 'active', 19, 42, NULL, NULL),
 (116, '21-03518', 'REMIE SAPERO POLISTICO', '1339379931', 0x00, 'Regular', 'active', 36, 42, NULL, NULL),
@@ -177,8 +175,6 @@ INSERT INTO `employees` (`id`, `ashima_id`, `name`, `rfid_tag`, `photo`, `emp_st
 INSERT INTO `employees` (`id`, `ashima_id`, `name`, `rfid_tag`, `photo`, `emp_stat`, `status`, `department_id`, `position_id`, `last_active`, `leader`) VALUES
 (145, '22-03869', 'HANNA EUNICE TAGURAN VICENTA', '1338950011', 0x00, 'Regular', 'active', 21, 42, NULL, NULL),
 (149, '22-03950', 'EMELOU GUINSATAO LASCONA', NULL, 0x00, 'Regular', 'active', 20, 43, NULL, NULL);
-INSERT INTO `employees` (`id`, `ashima_id`, `name`, `rfid_tag`, `photo`, `emp_stat`, `status`, `department_id`, `position_id`, `last_active`, `leader`) VALUES
-INSERT INTO `employees` (`id`, `ashima_id`, `name`, `rfid_tag`, `photo`, `emp_stat`, `status`, `department_id`, `position_id`, `last_active`, `leader`) VALUES
 INSERT INTO `employees` (`id`, `ashima_id`, `name`, `rfid_tag`, `photo`, `emp_stat`, `status`, `department_id`, `position_id`, `last_active`, `leader`) VALUES
 (165, '22-04056', 'JAYDELYN LOIS SADSAD LOBO', '1336733771', 0x00, 'Regular', 'active', 11, 42, NULL, NULL),
 (168, '22-04084', 'ZERNAN LUAR CUAY', '1338427387', 0x00, 'Regular', 'active', 12, 42, NULL, NULL),
