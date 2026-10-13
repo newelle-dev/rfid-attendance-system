@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useSession } from "next-auth/react";
-import { useSnackbar } from "notistack"; // Import from notistack
+import { toast } from "sonner";
 
 import {
   Dialog,
@@ -51,7 +51,6 @@ const passwordFormSchema = z.object({
 
 export default function ProfileDialog({ open, onOpenChange }) {
   const { data: session, update } = useSession();
-  const { enqueueSnackbar } = useSnackbar(); // Use notistack hook
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
 
@@ -108,14 +107,14 @@ export default function ProfileDialog({ open, onOpenChange }) {
         },
       });
 
-      // Show success notification with notistack
-      enqueueSnackbar("Profile updated successfully", { variant: "success" });
+      // Show success notification with sonner
+      toast.success("Profile updated successfully");
       
       // Close the dialog after successful update
       onOpenChange(false);
     } catch (error) {
-      // Show error notification with notistack
-      enqueueSnackbar(error.message || "Failed to update profile", { variant: "error" });
+      // Show error notification with sonner
+      toast.error(error.message || "Failed to update profile");
     } finally {
       setIsLoading(false);
     }
@@ -142,8 +141,8 @@ export default function ProfileDialog({ open, onOpenChange }) {
         throw new Error(result.error || "Failed to change password");
       }
 
-      // Show success notification with notistack
-      enqueueSnackbar("Password changed successfully", { variant: "success" });
+      // Show success notification with sonner
+      toast.success("Password changed successfully");
 
       // Reset password form
       passwordForm.reset({
@@ -155,8 +154,8 @@ export default function ProfileDialog({ open, onOpenChange }) {
       // Close the dialog after successful update
       onOpenChange(false);
     } catch (error) {
-      // Show error notification with notistack
-      enqueueSnackbar(error.message || "Failed to change password", { variant: "error" });
+      // Show error notification with sonner
+      toast.error(error.message || "Failed to change password");
     } finally {
       setIsLoading(false);
     }

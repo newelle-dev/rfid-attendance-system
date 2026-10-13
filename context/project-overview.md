@@ -22,7 +22,7 @@ The **RFID Attendance System** is a full-stack web application for managing empl
 | Date Handling  | **date-fns** and **dayjs**                                     |
 | Data Export    | **json2csv**                                                   |
 | Audio Feedback | **use-sound**                                                  |
-| Notifications  | **notistack**                                                  |
+| Notifications  | **Sonner (shadcn/ui)**                                         |
 
 ## Key Features
 

@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from "react";
-import { useSnackbar } from "notistack";
+import { toast } from "sonner";
 import ListTable from "./ListTable";
 
 export default function LeaderList() {
   const [supervisors, setSupervisors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { enqueueSnackbar } = useSnackbar();
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -66,7 +65,7 @@ export default function LeaderList() {
       }));
     } catch (err) {
       setError(err.message);
-      enqueueSnackbar('Failed to load leaders', { variant: 'error' });
+      toast.error('Failed to load leaders');
     } finally {
       setLoading(false);
     }

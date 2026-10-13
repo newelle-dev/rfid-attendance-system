@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { useSnackbar } from 'notistack';
+import { toast } from 'sonner';
 
 /**
  * Hook for managing employees data and operations
@@ -45,8 +45,6 @@ export const useEmployeesManager = () => {
   
   // Error state
   const [error, setError] = useState(null);
-  
-  const { enqueueSnackbar } = useSnackbar();
 
   /**
    * Fetches employees with current filters and pagination
@@ -79,13 +77,11 @@ export const useEmployeesManager = () => {
     } catch (error) {
       console.error('Error fetching employees:', error);
       setError(error.message);
-      enqueueSnackbar(error.message || 'Failed to fetch employees', { 
-        variant: 'error' 
-      });
+      toast.error(error.message || 'Failed to fetch employees');
     } finally {
       setLoading(false);
     }
-  }, [pagination.pageIndex, pagination.pageSize, filters, searchQuery, enqueueSnackbar]);
+  }, [pagination.pageIndex, pagination.pageSize, filters, searchQuery]);
 
   /**
    * Fetches metadata (departments, positions, leaders) for form options
@@ -117,11 +113,11 @@ export const useEmployeesManager = () => {
     } catch (error) {
       console.error('Error fetching metadata:', error);
       setError(error.message);
-      enqueueSnackbar('Failed to load form options', { variant: 'error' });
+      toast.error('Failed to load form options');
     } finally {
       setLoadingMetadata(false);
     }
-  }, [enqueueSnackbar]);
+  }, []);
 
   /**
    * Handles employee form submission (create/update)
@@ -161,20 +157,15 @@ export const useEmployeesManager = () => {
       setCurrentEmployee(null);
       await fetchEmployees();
       
-      enqueueSnackbar(
-        `Employee ${currentEmployee ? 'updated' : 'added'} successfully`, 
-        { variant: 'success' }
-      );
+      toast.success(`Employee ${currentEmployee ? 'updated' : 'added'} successfully`);
     } catch (error) {
       console.error('Error submitting employee data:', error);
       setError(error.message);
-      enqueueSnackbar(error.message || 'Failed to save employee', { 
-        variant: 'error' 
-      });
+      toast.error(error.message || 'Failed to save employee');
     } finally {
       setSubmitting(false);
     }
-  }, [currentEmployee, fetchEmployees, enqueueSnackbar]);
+  }, [currentEmployee, fetchEmployees]);
 
   /**
    * Opens the employee form dialog

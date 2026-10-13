@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useSnackbar } from 'notistack';
+import { toast } from 'sonner';
 import ListTable from './ListTable';
 import AddEditDialog from './AddEditDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,7 +12,6 @@ export default function PositionList() {
   const [itemToEdit, setItemToEdit] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { enqueueSnackbar } = useSnackbar();
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -81,7 +80,7 @@ export default function PositionList() {
       }));
     } catch (err) {
       setError(err.message);
-      enqueueSnackbar('Failed to load positions', { variant: 'error' });
+      toast.error('Failed to load positions');
     } finally {
       setLoading(false);
     }
@@ -106,9 +105,9 @@ export default function PositionList() {
       // Refresh the current page
       fetchPositions(pagination.page, pagination.limit, searchQuery);
       
-      enqueueSnackbar('Position added successfully', { variant: 'success' });
+      toast.success('Position added successfully');
     } catch (err) {
-      enqueueSnackbar(err.message || 'Failed to add position', { variant: 'error' });
+      toast.error(err.message || 'Failed to add position');
     }
   };
 
@@ -135,9 +134,9 @@ export default function PositionList() {
         )
       );
       setItemToEdit(null);
-      enqueueSnackbar('Position updated successfully', { variant: 'success' });
+      toast.success('Position updated successfully');
     } catch (err) {
-      enqueueSnackbar(err.message || 'Failed to update position', { variant: 'error' });
+      toast.error(err.message || 'Failed to update position');
     }
   };
 
@@ -169,9 +168,9 @@ export default function PositionList() {
         fetchPositions(pagination.page, pagination.limit, searchQuery);
       }
       
-      enqueueSnackbar('Position deleted successfully', { variant: 'success' });
+      toast.success('Position deleted successfully');
     } catch (err) {
-      enqueueSnackbar(err.message || 'Failed to delete position', { variant: 'error' });
+      toast.error(err.message || 'Failed to delete position');
     }
   };
 

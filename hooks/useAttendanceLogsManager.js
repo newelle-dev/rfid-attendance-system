@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useSnackbar } from 'notistack';
+import { toast } from 'sonner';
 
 /**
  * Debounce utility function
@@ -56,8 +56,6 @@ export const useAttendanceLogsManager = () => {
   
   // Error state
   const [error, setError] = useState(null);
-  
-  const { enqueueSnackbar } = useSnackbar();
 
   /**
    * Fetches attendance logs with current filters and pagination
@@ -94,13 +92,11 @@ export const useAttendanceLogsManager = () => {
     } catch (error) {
       console.error('Error fetching attendance logs:', error);
       setError(error.message);
-      enqueueSnackbar(error.message || 'Failed to fetch attendance logs', { 
-        variant: 'error' 
-      });
+      toast.error(error.message || 'Failed to fetch attendance logs');
     } finally {
       setLoading(false);
     }
-  }, [pagination.pageIndex, pagination.pageSize, filters, searchQuery, enqueueSnackbar]);
+  }, [pagination.pageIndex, pagination.pageSize, filters, searchQuery]);
 
   /**
    * Fetches departments for filter options
@@ -120,13 +116,11 @@ export const useAttendanceLogsManager = () => {
     } catch (error) {
       console.error('Error fetching departments:', error);
       setError(error.message);
-      enqueueSnackbar('Failed to load departments for filtering', { 
-        variant: 'error' 
-      });
+      toast.error('Failed to load departments for filtering');
     } finally {
       setLoadingDepartments(false);
     }
-  }, [enqueueSnackbar]);
+  }, []);
 
   /**
    * Handles search query updates with debouncing
@@ -189,19 +183,15 @@ export const useAttendanceLogsManager = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      enqueueSnackbar('Attendance logs exported successfully', { 
-        variant: 'success' 
-      });
+      toast.success('Attendance logs exported successfully');
     } catch (error) {
       console.error('Error exporting logs:', error);
       setError(error.message);
-      enqueueSnackbar(error.message || 'Failed to export logs', { 
-        variant: 'error' 
-      });
+      toast.error(error.message || 'Failed to export logs');
     } finally {
       setExporting(false);
     }
-  }, [searchQuery, filters, enqueueSnackbar]);
+  }, [searchQuery, filters]);
 
   /**
    * Opens the filter dialog

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSnackbar } from "notistack";
+import { toast } from "sonner";
 import { Plus, Filter, RefreshCw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,6 @@ export default function AccountLoginsPage() {
   const [currentAccount, setCurrentAccount] = useState(null);
   
   // Custom hooks
-  const { enqueueSnackbar } = useSnackbar();
   const { data: session } = useSession();
   const {
     accounts,
@@ -55,26 +54,26 @@ export default function AccountLoginsPage() {
       
       if (currentAccount) {
         await updateAccount(currentAccount.id, formData);
-        enqueueSnackbar("Account updated successfully", { variant: "success" });
+        toast.success("Account updated successfully");
       } else {
         await createAccount(formData);
-        enqueueSnackbar("Account created successfully", { variant: "success" });
+        toast.success("Account created successfully");
       }
       
       setCurrentAccount(null);
     } catch (error) {
       console.error("Error submitting account data:", error);
-      enqueueSnackbar(error.message || "Failed to save account", { variant: "error" });
+      toast.error(error.message || "Failed to save account");
     }
   };
 
   const handleDeleteAccount = async (id) => {
     try {
       await deleteAccount(id);
-      enqueueSnackbar("Account deleted successfully", { variant: "success" });
+      toast.success("Account deleted successfully");
     } catch (error) {
       console.error("Error deleting account:", error);
-      enqueueSnackbar(error.message || "Failed to delete account", { variant: "error" });
+      toast.error(error.message || "Failed to delete account");
     }
   };
 

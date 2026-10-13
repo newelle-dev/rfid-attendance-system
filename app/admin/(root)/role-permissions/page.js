@@ -8,7 +8,7 @@ import DeleteConfirmationDialog from "@/components/ui/DeleteConfirmationDialog";
 import { Shield, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import PermissionGuard from "@/components/auth/PermissionGuard";
-import { useSnackbar } from "notistack";
+import { toast } from "sonner";
 import { useRolePermissionsManager } from "@/hooks/useRolePermissionsManager";
 import PermissionsMatrix from "@/components/admin/role-permissions/PermissionsMatrix";
 import AddPermissionDialog from "@/components/admin/role-permissions/AddPermissionDialog";
@@ -30,7 +30,6 @@ import PermissionActions from "@/components/admin/role-permissions/PermissionAct
 export default function RolePermissionsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { enqueueSnackbar } = useSnackbar();
   
   // Delete dialog state
   const [deleteDialog, setDeleteDialog] = useState({
@@ -68,10 +67,10 @@ export default function RolePermissionsPage() {
   // Error handling
   useEffect(() => {
     if (error) {
-      enqueueSnackbar(error, { variant: 'error' });
+      toast.error(error);
       clearError();
     }
-  }, [error, enqueueSnackbar, clearError]);
+  }, [error, clearError]);
 
   /**
    * Handle saving permissions with user feedback
@@ -79,9 +78,9 @@ export default function RolePermissionsPage() {
   const handleSavePermissions = async () => {
     const result = await savePermissions();
     if (result.success) {
-      enqueueSnackbar(result.message, { variant: 'success' });
+      toast.success(result.message);
     } else {
-      enqueueSnackbar(result.message, { variant: 'error' });
+      toast.error(result.message);
     }
   };
 
@@ -91,10 +90,10 @@ export default function RolePermissionsPage() {
   const handleAddPermission = async (newPermissionData) => {
     const result = await addPermission(newPermissionData);
     if (result.success) {
-      enqueueSnackbar(result.message, { variant: 'success' });
+      toast.success(result.message);
       return true; // Signal success to dialog
     } else {
-      enqueueSnackbar(result.message, { variant: 'error' });
+      toast.error(result.message);
       return false;
     }
   };
@@ -122,14 +121,14 @@ export default function RolePermissionsPage() {
     try {
       const result = await deletePermission(deleteDialog.role, deleteDialog.moduleName);
       if (result.success) {
-        enqueueSnackbar(result.message, { variant: 'success' });
+        toast.success(result.message);
         setDeleteDialog({ open: false, role: null, moduleName: null, loading: false });
       } else {
-        enqueueSnackbar(result.message, { variant: 'error' });
+        toast.error(result.message);
         setDeleteDialog(prev => ({ ...prev, loading: false }));
       }
     } catch (error) {
-      enqueueSnackbar('An unexpected error occurred', { variant: 'error' });
+      toast.error('An unexpected error occurred');
       setDeleteDialog(prev => ({ ...prev, loading: false }));
     }
   };
@@ -147,7 +146,7 @@ export default function RolePermissionsPage() {
    */
   const handleRefreshPermissions = async () => {
     await fetchPermissions();
-    enqueueSnackbar('Permissions refreshed successfully', { variant: 'success' });
+    toast.success('Permissions refreshed successfully');
   };
 
   // Loading state

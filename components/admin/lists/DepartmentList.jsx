@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Loader2 } from "lucide-react";
-import { useSnackbar } from 'notistack';
+import { toast } from 'sonner';
 import ListTable from './ListTable';
 import AddEditDialog from './AddEditDialog';
 
@@ -11,7 +11,6 @@ export default function DepartmentList() {
   const [itemToEdit, setItemToEdit] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { enqueueSnackbar } = useSnackbar();
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -69,7 +68,7 @@ export default function DepartmentList() {
       }));
     } catch (err) {
       setError(err.message);
-      enqueueSnackbar('Failed to load departments', { variant: 'error' });
+      toast.error('Failed to load departments');
     } finally {
       setLoading(false);
     }
@@ -91,9 +90,9 @@ export default function DepartmentList() {
       // Refresh the current page
       fetchDepartments(pagination.page, pagination.limit, searchQuery);
       
-      enqueueSnackbar('Department added successfully', { variant: 'success' });
+      toast.success('Department added successfully');
     } catch (err) {
-      enqueueSnackbar(err.message || 'Failed to add department', { variant: 'error' });
+      toast.error(err.message || 'Failed to add department');
     }
   };
 
@@ -117,9 +116,9 @@ export default function DepartmentList() {
         )
       );
       setItemToEdit(null);
-      enqueueSnackbar('Department updated successfully', { variant: 'success' });
+      toast.success('Department updated successfully');
     } catch (err) {
-      enqueueSnackbar(err.message || 'Failed to update department', { variant: 'error' });
+      toast.error(err.message || 'Failed to update department');
     }
   };
 
@@ -151,9 +150,9 @@ export default function DepartmentList() {
         fetchDepartments(pagination.page, pagination.limit, searchQuery);
       }
       
-      enqueueSnackbar('Department deleted successfully', { variant: 'success' });
+      toast.success('Department deleted successfully');
     } catch (err) {
-      enqueueSnackbar(err.message || 'Failed to delete department', { variant: 'error' });
+      toast.error(err.message || 'Failed to delete department');
     }
   };
 
