@@ -6,6 +6,7 @@ import "react-datepicker/dist/react-datepicker.css";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 function Calendar({ 
   className, 
