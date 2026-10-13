@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSnackbar } from "notistack";
 import ListTable from "./ListTable";
 
-export default function SupervisorList() {
+export default function LeaderList() {
   const [supervisors, setSupervisors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

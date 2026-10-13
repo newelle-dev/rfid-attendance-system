@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSession } from "next-auth/react";
-import { AccountTable, AccountFormDialog, FilterDialog, DashboardStats } from "@/components/admin/accounts";
+import AccountTable from "@/components/admin/accounts/AccountTable";
+import AccountFormDialog from "@/components/admin/accounts/AccountFormDialog";
+import FilterDialog from "@/components/admin/accounts/FilterDialog";
+import DashboardStats from "@/components/admin/accounts/DashboardStats";
 import { useAccountLogins } from "@/hooks/useAccountLogins";
 import { ACCOUNT_ROLES } from "@/constants/accountConstants";
 

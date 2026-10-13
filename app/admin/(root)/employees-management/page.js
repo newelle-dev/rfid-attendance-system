@@ -18,17 +18,13 @@
 
 import React, { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  EmployeeTable, 
-  EmployeeFormDialog, 
-  FilterDialog, 
-  DashboardStats,
-  SearchAndFilterControls,
-  EmployeeActions,
-  LoadingState,
-  EmptyState,
-  ErrorState
-} from "@/components/admin/employees";
+import EmployeeTable from "@/components/admin/employees/EmployeeTable";
+import EmployeeFormDialog from "@/components/admin/employees/EmployeeFormDialog";
+import FilterDialog from "@/components/admin/employees/FilterDialog";
+import DashboardStats from "@/components/admin/employees/DashboardStats";
+import SearchAndFilterControls from "@/components/admin/employees/SearchAndFilterControls";
+import EmployeeActions from "@/components/admin/employees/EmployeeActions";
+import { LoadingState, EmptyState, ErrorState } from "@/components/admin/employees/EmployeeStates";
 import { useEmployeesManager } from "@/hooks/useEmployeesManager";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 

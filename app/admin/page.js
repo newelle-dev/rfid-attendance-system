@@ -6,11 +6,9 @@ import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useAccessibleModules, useAttendanceAccess } from "@/hooks/useModuleAccess";
 import { MODULE_DEFINITIONS } from "@/constants/moduleDefinitions";
 import LogoutConfirmationDialog from "@/components/auth/LogoutConfirmationDialog";
-import {
-  DashboardHeader,
-  ModuleAccessCards,
-  QuickAction
-} from "@/components/admin/dashboard";
+import DashboardHeader from "@/components/admin/dashboard/DashboardHeader";
+import ModuleAccessCards from "@/components/admin/dashboard/ModuleAccessCards";
+import QuickAction from "@/components/admin/dashboard/QuickAction";
 
 /**
  * Admin Dashboard Component

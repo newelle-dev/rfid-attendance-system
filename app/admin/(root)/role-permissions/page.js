@@ -10,12 +10,10 @@ import { motion } from "framer-motion";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { useSnackbar } from "notistack";
 import { useRolePermissionsManager } from "@/hooks/useRolePermissionsManager";
-import {
-  PermissionsMatrix,
-  AddPermissionDialog,
-  RoleOverviewCards,
-  PermissionActions
-} from "@/components/admin/role-permissions";
+import PermissionsMatrix from "@/components/admin/role-permissions/PermissionsMatrix";
+import AddPermissionDialog from "@/components/admin/role-permissions/AddPermissionDialog";
+import RoleOverviewCards from "@/components/admin/role-permissions/RoleOverviewCards";
+import PermissionActions from "@/components/admin/role-permissions/PermissionActions";
 
 /**
  * Role Permissions Management Page

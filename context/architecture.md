@@ -56,23 +56,17 @@ rfid-attendance-system/
 │   ├── useAccountLogins.js           # Admin account state
 │   ├── useRolePermissions.js         # Permission data fetching
 │   ├── useRolePermissionsManager.js  # Permission CRUD state
-│   ├── useDashboardStats.js          # Dashboard statistics
 │   ├── useModuleAccess.js            # Client-side permission checks
 │   ├── useAuth.js                    # Auth session hook
-│   ├── useAnimation.js               # Animation utilities
-│   └── useSidebarToggle.js           # Sidebar collapse state
+│   └── useAnimation.js               # Animation utilities
 ├── lib/
 │   ├── db.js                         # MySQL connection pool + query helpers
 │   ├── HIDListeners.js               # RFID HID keyboard event listeners
 │   └── utils.js                      # cn() classname merge utility
 ├── constants/
 │   ├── index.js                      # App constants
-│   ├── auth.js                       # Auth config
-│   ├── navItems.js                   # Sidebar navigation items
 │   ├── moduleDefinitions.js          # Module definitions for permissions
 │   └── accountConstants.js           # Account-related constants
-├── providers/
-│   └── AuthProvider.js               # NextAuth SessionProvider wrapper
 ├── utils/
 │   └── dateUtils.js                  # Date formatting helpers
 ├── databases/                        # SQL schema + migrations
@@ -130,7 +124,7 @@ Browser → /admin/{page}
 - **Provider**: NextAuth.js v4 with `CredentialsProvider`
 - **Strategy**: JWT (no database sessions)
 - **Token payload**: `{ id, name, username, employee_id, role }`
-- **Session wrapper**: `providers/AuthProvider.js` wraps app in `<SessionProvider>`
+- **Session wrapper**: `app/admin/layout.js` wraps admin routes in `<SessionProvider>`
 - **Middleware**: Intercepts all `/admin/*` routes (except `/admin/login` and `/api/*`)
 - **Roles**: `superadmin` (full access), `admin`, `security`, `hr`
 

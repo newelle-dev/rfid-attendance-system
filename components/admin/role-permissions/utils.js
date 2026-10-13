@@ -18,14 +18,6 @@ export const getModuleInfo = (moduleName) => {
   return MODULES.find(m => m.value === moduleName);
 };
 
-/**
- * Get role color class
- * @param {string} role - Role value
- * @returns {string} CSS class for role color
- */
-export const getRoleColor = (role) => {
-  return getRoleInfo(role)?.color || 'bg-gray-500';
-};
 
 /**
  * Check if a permission is protected from modification
@@ -37,16 +29,6 @@ export const isProtectedPermission = (role, module) => {
   return PROTECTED_PERMISSIONS.some(p => p.role === role && p.module === module);
 };
 
-/**
- * Get permission for a specific role and module
- * @param {Array} permissions - All permissions array
- * @param {string} role - Role value
- * @param {string} module - Module value
- * @returns {Object|undefined} Permission object
- */
-export const getPermissionForRoleModule = (permissions, role, module) => {
-  return permissions.find(p => p.role === role && p.module === module);
-};
 
 /**
  * Calculate role statistics

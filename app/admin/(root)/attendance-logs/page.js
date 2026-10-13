@@ -1,13 +1,10 @@
 "use client";
 
-import { 
-  AttendanceTable, 
-  FilterDialog, 
-  DashboardStats,
-  SearchAndFilterControls,
-  AttendanceHeader,
-  AttendanceStates
-} from "@/components/admin/attendance";
+import AttendanceTable from "@/components/admin/attendance/AttendanceTable";
+import FilterDialog from "@/components/admin/attendance/FilterDialog";
+import DashboardStats from "@/components/admin/attendance/DashboardStats";
+import AttendanceHeader from "@/components/admin/attendance/AttendanceHeader";
+import AttendanceStates from "@/components/admin/attendance/AttendanceStates";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { useAttendanceLogsManager } from "@/hooks/useAttendanceLogsManager";
 import { Card, CardContent } from "@/components/ui/card";

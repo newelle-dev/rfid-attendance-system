@@ -62,22 +62,6 @@ export const MODULES = [
   }
 ];
 
-export const PERMISSIONS = [
-  { 
-    key: 'access', 
-    label: 'Access', 
-    description: 'Can access and use this module'
-  }
-];
-
-// Module icons mapping
-export const MODULE_ICONS = {
-  employees_management: 'Users',
-  data_management: 'Database', 
-  account_logins: 'UserCog',
-  attendance_logs: 'Calendar',
-  role_permissions: 'Shield'
-};
 
 // Default new permission structure
 export const DEFAULT_NEW_PERMISSION = {

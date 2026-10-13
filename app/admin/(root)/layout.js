@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { SnackbarProvider, closeSnackbar } from 'notistack';
 import { X } from 'lucide-react';
-import { SideNav, Header } from '@/components/admin/layout';
+import SideNav from '@/components/admin/layout/SideNav';
+import Header from '@/components/admin/layout/Header';
 import { Button } from "@/components/ui/button";
 import { SessionProvider } from 'next-auth/react';
 
