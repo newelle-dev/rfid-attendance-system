@@ -30,6 +30,7 @@ export default function QuickAction({ hasAttendanceAccess }) {
             <Button 
               className="bg-blue-600 hover:bg-blue-700"
               render={<Link href="/admin/attendance-logs" />}
+              nativeButton={false}
               aria-label="Navigate to attendance logs page"
             >
               View Attendance Logs
