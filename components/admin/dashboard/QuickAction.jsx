@@ -29,12 +29,10 @@ export default function QuickAction({ hasAttendanceAccess }) {
             </div>
             <Button 
               className="bg-blue-600 hover:bg-blue-700"
-              asChild
+              render={<Link href="/admin/attendance-logs" />}
               aria-label="Navigate to attendance logs page"
             >
-              <Link href="/admin/attendance-logs">
-                View Attendance Logs
-              </Link>
+              View Attendance Logs
             </Button>
           </div>
         </CardContent>
