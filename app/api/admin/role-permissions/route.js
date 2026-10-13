@@ -1,17 +1,52 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { NextResponse } from "next/server";
+import { requireAdminSession } from "@/lib/auth";
 import { executeQuery } from "@/lib/db";
+import { z } from "zod";
 
-export async function GET(request) {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return Response.json({ error: "Unauthorized access" }, { status: 403 });
+const roleEnum = z.enum(["superadmin", "admin", "security", "hr"]);
+
+const permissionObjectSchema = z.record(z.any());
+
+const postSchema = z.object({
+  role: roleEnum,
+  module: z.string().min(1, "Role and module are required"),
+  permission: permissionObjectSchema,
+});
+
+const putSchema = z.object({
+  permissions: z.array(
+    z.object({
+      role: roleEnum,
+      module: z.string().min(1),
+      permission: permissionObjectSchema,
+    })
+  ).min(1, "Permissions array is required"),
+});
+
+const deleteQuerySchema = z.object({
+  role: roleEnum,
+  module: z.string().min(1, "Role and module are required"),
+});
+
+function safeParsePermission(permission) {
+  if (typeof permission === "object" && permission !== null) {
+    return permission;
+  }
+  if (typeof permission === "string") {
+    try {
+      return JSON.parse(permission);
+    } catch {
+      return { access: false };
     }
+  }
+  return { access: false };
+}
 
-    // Get all role permissions - all authenticated users can view permissions
-    // for navigation and access control purposes
+export async function GET() {
+  const { error } = await requireAdminSession();
+  if (error) return error;
+
+  try {
     const permissions = await executeQuery({
       query: `
         SELECT 
@@ -25,39 +60,34 @@ export async function GET(request) {
         ORDER BY 
           FIELD(role, 'superadmin', 'admin', 'security', 'hr'),
           module
-      `
+      `,
     });
 
-    // Parse JSON permissions safely (mysql2 may already return JSON columns as parsed objects)
-    const formattedPermissions = permissions.map(perm => ({
+    const formattedPermissions = (Array.isArray(permissions) ? permissions : []).map((perm) => ({
       ...perm,
-      permission: typeof perm.permission === 'string' 
-        ? JSON.parse(perm.permission) 
-        : (perm.permission || {})
+      permission: safeParsePermission(perm.permission),
     }));
 
-    return Response.json({ permissions: formattedPermissions });
-  } catch (error) {
-    console.error('Error fetching role permissions:', error);
-    return Response.json({ error: "Failed to fetch role permissions" }, { status: 500 });
+    return NextResponse.json({ permissions: formattedPermissions });
+  } catch (err) {
+    console.error("Error fetching role permissions:", err);
+    return NextResponse.json({ error: "Failed to fetch role permissions" }, { status: 500 });
   }
 }
 
 export async function POST(request) {
+  const { error } = await requireAdminSession(["superadmin"]);
+  if (error) return error;
+
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session || session.user.role !== 'superadmin') {
-      return Response.json({ error: "Unauthorized access" }, { status: 403 });
+    const body = await request.json();
+    const parsed = postSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Role, module, and permission are required" }, { status: 400 });
     }
 
-    const { role, module, permission } = await request.json();
+    const { role, module, permission } = parsed.data;
 
-    if (!role || !module || !permission) {
-      return Response.json({ error: "Role, module, and permission are required" }, { status: 400 });
-    }
-
-    // Insert or update role permission
     await executeQuery({
       query: `
         INSERT INTO role_permissions (role, module, permission) 
@@ -66,31 +96,29 @@ export async function POST(request) {
         permission = VALUES(permission),
         updated_at = CURRENT_TIMESTAMP
       `,
-      values: [role, module, JSON.stringify(permission)]
+      values: [role, module, JSON.stringify(permission)],
     });
 
-    return Response.json({ message: "Role permission updated successfully" });
-  } catch (error) {
-    console.error('Error updating role permission:', error);
-    return Response.json({ error: "Failed to update role permission" }, { status: 500 });
+    return NextResponse.json({ message: "Role permission updated successfully" });
+  } catch (err) {
+    console.error("Error updating role permission:", err);
+    return NextResponse.json({ error: "Failed to update role permission" }, { status: 500 });
   }
 }
 
 export async function PUT(request) {
+  const { error } = await requireAdminSession(["superadmin"]);
+  if (error) return error;
+
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session || session.user.role !== 'superadmin') {
-      return Response.json({ error: "Unauthorized access" }, { status: 403 });
+    const body = await request.json();
+    const parsed = putSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Permissions array is required" }, { status: 400 });
     }
 
-    const { permissions } = await request.json();
+    const { permissions } = parsed.data;
 
-    if (!permissions || !Array.isArray(permissions)) {
-      return Response.json({ error: "Permissions array is required" }, { status: 400 });
-    }
-
-    // Batch update permissions
     for (const perm of permissions) {
       await executeQuery({
         query: `
@@ -100,41 +128,42 @@ export async function PUT(request) {
           permission = VALUES(permission),
           updated_at = CURRENT_TIMESTAMP
         `,
-        values: [perm.role, perm.module, JSON.stringify(perm.permission)]
+        values: [perm.role, perm.module, JSON.stringify(perm.permission)],
       });
     }
 
-    return Response.json({ message: "Bulk permissions updated successfully" });
-  } catch (error) {
-    console.error('Error bulk updating permissions:', error);
-    return Response.json({ error: "Failed to update permissions" }, { status: 500 });
+    return NextResponse.json({ message: "Bulk permissions updated successfully" });
+  } catch (err) {
+    console.error("Error bulk updating permissions:", err);
+    return NextResponse.json({ error: "Failed to update permissions" }, { status: 500 });
   }
 }
 
 export async function DELETE(request) {
+  const { error } = await requireAdminSession(["superadmin"]);
+  if (error) return error;
+
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session || session.user.role !== 'superadmin') {
-      return Response.json({ error: "Unauthorized access" }, { status: 403 });
-    }
-
     const { searchParams } = new URL(request.url);
-    const role = searchParams.get('role');
-    const moduleName = searchParams.get('module');
+    const parsed = deleteQuerySchema.safeParse({
+      role: searchParams.get("role"),
+      module: searchParams.get("module"),
+    });
 
-    if (!role || !moduleName) {
-      return Response.json({ error: "Role and module are required" }, { status: 400 });
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Role and module are required" }, { status: 400 });
     }
+
+    const { role, module } = parsed.data;
 
     await executeQuery({
       query: `DELETE FROM role_permissions WHERE role = ? AND module = ?`,
-      values: [role, moduleName]
+      values: [role, module],
     });
 
-    return Response.json({ message: "Role permission deleted successfully" });
-  } catch (error) {
-    console.error('Error deleting role permission:', error);
-    return Response.json({ error: "Failed to delete role permission" }, { status: 500 });
+    return NextResponse.json({ message: "Role permission deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting role permission:", err);
+    return NextResponse.json({ error: "Failed to delete role permission" }, { status: 500 });
   }
 }

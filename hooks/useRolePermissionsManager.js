@@ -27,7 +27,8 @@ export const useRolePermissionsManager = () => {
       const res = await fetch('/api/admin/role-permissions');
       
       if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
       }
       
       const data = await res.json();
@@ -35,7 +36,7 @@ export const useRolePermissionsManager = () => {
       setOriginalPermissions(data.permissions || []);
     } catch (err) {
       console.error('Error fetching permissions:', err);
-      setError('Failed to load permissions. Please try again.');
+      setError(err.message || 'Failed to load permissions. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -79,7 +80,8 @@ export const useRolePermissionsManager = () => {
       });
 
       if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
       }
 
       // Update original permissions to reflect saved state
@@ -88,8 +90,8 @@ export const useRolePermissionsManager = () => {
       return { success: true, message: 'Permissions updated successfully!' };
     } catch (err) {
       console.error('Error saving permissions:', err);
-      setError('Failed to save permissions. Please try again.');
-      return { success: false, message: 'Failed to save permissions' };
+      setError(err.message || 'Failed to save permissions. Please try again.');
+      return { success: false, message: err.message || 'Failed to save permissions' };
     } finally {
       setSaving(false);
     }
@@ -109,7 +111,8 @@ export const useRolePermissionsManager = () => {
       });
 
       if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
       }
 
       // Refresh permissions after adding
@@ -118,8 +121,8 @@ export const useRolePermissionsManager = () => {
       return { success: true, message: 'Permission added successfully!' };
     } catch (err) {
       console.error('Error adding permission:', err);
-      setError('Failed to add permission. Please try again.');
-      return { success: false, message: 'Failed to add permission' };
+      setError(err.message || 'Failed to add permission. Please try again.');
+      return { success: false, message: err.message || 'Failed to add permission' };
     }
   }, [fetchPermissions]);
 
@@ -136,7 +139,8 @@ export const useRolePermissionsManager = () => {
       );
 
       if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
       }
 
       // Refresh permissions after deletion
@@ -145,8 +149,8 @@ export const useRolePermissionsManager = () => {
       return { success: true, message: 'Permission deleted successfully!' };
     } catch (err) {
       console.error('Error deleting permission:', err);
-      setError('Failed to delete permission. Please try again.');
-      return { success: false, message: 'Failed to delete permission' };
+      setError(err.message || 'Failed to delete permission. Please try again.');
+      return { success: false, message: err.message || 'Failed to delete permission' };
     }
   }, [fetchPermissions]);
 
