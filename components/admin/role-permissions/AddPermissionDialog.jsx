@@ -99,11 +99,11 @@ export default function AddPermissionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline" aria-label="Add new permission">
-          <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
-          Add Permission
-        </Button>
+      <DialogTrigger
+        render={<Button variant="outline" aria-label="Add new permission" />}
+      >
+        <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
+        Add Permission
       </DialogTrigger>
       <DialogContent className="sm:max-w-md" aria-describedby="add-permission-description">
         <DialogHeader>
