@@ -76,7 +76,7 @@ export default function PermissionsMatrix({
             <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500">No permissions have been configured yet.</p>
             <p className="text-sm text-gray-400 mt-2">
-              Use the "Add Permission" button to create your first permission.
+              Use the &quot;Add Permission&quot; button to create your first permission.
             </p>
           </div>
         </CardContent>

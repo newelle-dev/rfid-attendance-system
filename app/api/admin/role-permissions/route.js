@@ -28,10 +28,12 @@ export async function GET(request) {
       `
     });
 
-    // Parse JSON permissions
+    // Parse JSON permissions safely (mysql2 may already return JSON columns as parsed objects)
     const formattedPermissions = permissions.map(perm => ({
       ...perm,
-      permission: JSON.parse(perm.permission)
+      permission: typeof perm.permission === 'string' 
+        ? JSON.parse(perm.permission) 
+        : (perm.permission || {})
     }));
 
     return Response.json({ permissions: formattedPermissions });

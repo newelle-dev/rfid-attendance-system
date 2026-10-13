@@ -20,7 +20,10 @@ export function useRolePermissions() {
           // Convert array to object for easier access
           const permissionsObj = {};
           userPermissions.forEach(perm => {
-            permissionsObj[perm.module] = perm.permission;
+            const parsed = typeof perm.permission === 'string' 
+              ? JSON.parse(perm.permission) 
+              : (perm.permission || {});
+            permissionsObj[perm.module] = parsed;
           });
           
           setPermissions(permissionsObj);
@@ -51,7 +54,10 @@ export function useRolePermissions() {
           // Convert array to object for easier access
           const permissionsObj = {};
           userPermissions.forEach(perm => {
-            permissionsObj[perm.module] = perm.permission;
+            const parsed = typeof perm.permission === 'string' 
+              ? JSON.parse(perm.permission) 
+              : (perm.permission || {});
+            permissionsObj[perm.module] = parsed;
           });
           
           setPermissions(permissionsObj);

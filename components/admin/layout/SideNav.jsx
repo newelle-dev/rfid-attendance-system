@@ -56,12 +56,25 @@ export default function SideNav({ collapsed }) {
 
   // Build navigation items based on permissions
   const navItems = React.useMemo(() => {
-    if (!permissions || !session?.user?.role) return [];
+    if (!session?.user?.role) return [];
 
-    // All roles (including superadmin) get modules based on their database permissions
-    return Object.entries(MODULE_DEFINITIONS)
-      .filter(([moduleKey]) => permissions[moduleKey]?.access)
-      .map(([, moduleInfo]) => moduleInfo);
+    if (permissions) {
+      const allowed = Object.entries(MODULE_DEFINITIONS)
+        .filter(([moduleKey]) => permissions[moduleKey]?.access)
+        .map(([, moduleInfo]) => moduleInfo);
+
+      if (session.user.role === 'superadmin' && allowed.length === 0) {
+        return Object.values(MODULE_DEFINITIONS);
+      }
+      return allowed;
+    }
+
+    // Fallback for superadmin while loading or if permissions fetch fails
+    if (session.user.role === 'superadmin') {
+      return Object.values(MODULE_DEFINITIONS);
+    }
+
+    return [];
   }, [permissions, session?.user?.role]);
 
   // Show skeleton loading state while session or permissions are loading
