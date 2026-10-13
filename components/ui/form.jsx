@@ -1,6 +1,5 @@
 "use client";
 import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
 import { Controller, FormProvider, useFormContext, useFormState } from "react-hook-form";
 
 import { cn } from "@/lib/utils"
@@ -77,23 +76,33 @@ function FormLabel({
 }
 
 function FormControl({
+  children,
+  render,
   ...props
 }) {
   const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
 
-  return (
-    <Slot
-      data-slot="form-control"
-      id={formItemId}
-      aria-describedby={
-        !error
-          ? `${formDescriptionId}`
-          : `${formDescriptionId} ${formMessageId}`
-      }
-      aria-invalid={!!error}
-      {...props} />
-  );
+  const controlProps = {
+    "data-slot": "form-control",
+    id: formItemId,
+    "aria-describedby": !error
+      ? `${formDescriptionId}`
+      : `${formDescriptionId} ${formMessageId}`,
+    "aria-invalid": !!error,
+    ...props,
+  }
+
+  if (render && React.isValidElement(render)) {
+    return React.cloneElement(render, controlProps)
+  }
+
+  if (React.isValidElement(children)) {
+    return React.cloneElement(children, controlProps)
+  }
+
+  return null
 }
+
 
 function FormDescription({
   className,
