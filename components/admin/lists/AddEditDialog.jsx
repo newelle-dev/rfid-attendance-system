@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@radix-ui/react-label';
+import { Label } from '@/components/ui/label';
 
 
 export default function AddEditDialog({ onSave, itemName, editItem = null, open, onOpenChange }) {
