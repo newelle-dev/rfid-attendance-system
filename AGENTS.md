@@ -25,6 +25,8 @@
 - Standardize icons on `lucide-react` and date formatting on `dayjs`.
 - Validate all incoming API request payloads with `zod`.
 - Use `<DeleteConfirmationDialog>` for all deletion actions in the UI.
+- Follow the 4-tier layout standard (`PageHeader` -> Command Header -> KPI Strip -> Main Card); every admin page root div must strictly be `<div className="space-y-6">`.
+- Use design system semantic color tokens (`bg-muted/20`, `bg-background`, `border-border/80`, `text-foreground`).
 
 ### Ask First
 - Modifying SQL schemas or migrations in `databases/`.
@@ -37,6 +39,8 @@
 - Never bypass authentication on `/api/admin/*` routes.
 - Never write unhashed passwords to `admin_users` (always hash with `bcryptjs`).
 - Never bind global HID keydown listeners without ignoring active `INPUT`, `TEXTAREA`, or `contenteditable` targets.
+- Never add `container`, `mx-auto`, `max-w-*`, `px-*`, or `py-*` to admin page root divs — outer container width and padding are centralized in `app/admin/(root)/layout.js`.
+- Never use ad-hoc color classes like `bg-slate-50/60` or hardcoded gray palettes in admin portal shells.
 
 ---
 

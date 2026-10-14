@@ -44,7 +44,7 @@ export default function PageHeader({ title, breadcrumbs, className }) {
     <div
       data-slot="page-header"
       className={cn(
-        "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4",
+        "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pb-0.5",
         className
       )}
     >
