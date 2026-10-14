@@ -4,153 +4,216 @@
 
 ```
 rfid-attendance-system/
-├── app/                              # Next.js App Router
-│   ├── layout.js                     # Root layout
-│   ├── page.js                       # Public RFID scanning page
-│   ├── globals.css                   # Global styles (Tailwind)
+├── app/                                  # Next.js 16 App Router
+│   ├── layout.js                         # Root HTML layout (fonts, metadata)
+│   ├── page.js                           # Kiosk attendance terminal (RFID HID scan & punch feedback)
+│   ├── globals.css                       # Global styles & Tailwind CSS 4 theme tokens
 │   ├── admin/
-│   │   ├── layout.js                 # Admin layout (auth redirect)
-│   │   ├── page.js                   # Admin dashboard page
-│   │   ├── login/                    # Login page
-│   │   └── (root)/                   # Protected admin route group
-│   │       ├── layout.js             # Sidebar + header layout
-│   │       ├── employees-management/ # Employee CRUD page
-│   │       ├── attendance-logs/      # Attendance logs page
-│   │       ├── lists/                # Departments & Positions management
-│   │       ├── account-logins/       # Admin account management
-│   │       └── role-permissions/     # Role permission config
+│   │   ├── layout.js                     # Root admin server layout with metadata
+│   │   ├── AdminProviders.jsx            # Client boundary for SessionProvider & ThemeProvider
+│   │   ├── login/                        # Admin credentials login page
+│   │   │   └── page.js
+│   │   └── (root)/                       # Authenticated admin portal shell (route group)
+│   │       ├── layout.js                 # Centralized shell (SidebarProvider, SideNav, Header, Toaster)
+│   │       ├── loading.js                # Instant route transition fallback
+│   │       ├── page.js                   # Dashboard overview & real-time activity feed
+│   │       ├── employees-management/     # React Server Component for employee management
+│   │       │   └── page.js
+│   │       ├── attendance-logs/          # Daily attendance logs & punch history viewer
+│   │       │   └── page.js
+│   │       ├── lists/                    # Department & Position management
+│   │       │   └── page.js
+│   │       ├── account-logins/           # Admin user accounts & credential management
+│   │       │   └── page.js
+│   │       └── role-permissions/         # Role-based access control matrix
+│   │           └── page.js
 │   └── api/
-│       ├── auth/                     # NextAuth [...nextauth] handler
-│       ├── attendance/               # Public attendance endpoints
-│       │   ├── add/                  # POST — log attendance
-│       │   └── logs/                 # GET — fetch logs
-│       ├── employees/                # Public employee lookup
-│       └── admin/                    # Protected admin API routes
-│           ├── accounts/             # Admin user CRUD
-│           ├── attendance-logs/      # Attendance log management
-│           ├── dashboard/            # Dashboard statistics
-│           ├── departments/          # Department CRUD
-│           ├── employees/            # Employee CRUD
-│           ├── leaders/              # Leader lookup
-│           ├── positions/            # Position CRUD
-│           ├── profile/              # User profile
-│           └── role-permissions/     # Permission CRUD
+│       ├── auth/                         # NextAuth [...nextauth] route handler
+│       ├── attendance/                   # Public kiosk attendance endpoints
+│       │   ├── add/                      # POST — record IN / OUT punch
+│       │   └── logs/                     # GET — fetch public punch log
+│       └── admin/                        # Protected admin REST endpoints (requireAdminSession)
+│           ├── accounts/                 # Admin user CRUD
+│           ├── attendance-logs/          # Attendance logs retrieval & filtering
+│           ├── dashboard/                # Aggregated metrics & activity feeds
+│           ├── departments/              # Department CRUD & AUTO_INCREMENT ID handling
+│           ├── employees/                # Employee CRUD & photo processing
+│           ├── leaders/                  # Direct supervisor lookup
+│           ├── lists/stats/              # Department & position counts
+│           ├── positions/                # Position CRUD & leadership flag
+│           ├── profile/                  # Admin profile details
+│           └── role-permissions/         # Permission CRUD & role-based matrix
 ├── components/
-│   ├── Clock.js                      # Real-time clock display
-│   ├── admin/                        # Admin dashboard components
-│   │   ├── dashboard/                # Dashboard stats, charts
-│   │   ├── employees/                # Employee table, forms, dialogs
-│   │   ├── attendance/               # Attendance table, filters
-│   │   ├── accounts/                 # Account management components
-│   │   ├── lists/                    # Department/Position lists
-│   │   ├── role-permissions/         # Permission matrix UI
-│   │   └── layout/                   # Sidebar, Header, PageWrapper
-│   ├── auth/                         # Login form, auth guards
-│   ├── profile/                      # User profile components
-│   └── ui/                           # Base UI primitives (button, input, dialog, etc.)
-├── hooks/                            # Custom React hooks
-│   ├── useAttendance.js              # RFID scan + attendance logging
-│   ├── useEmployeesManager.js        # Employee CRUD state
-│   ├── useEmployeeForm.js            # Employee form state + validation
-│   ├── useAttendanceLogsManager.js   # Attendance logs state + filtering
-│   ├── useAccountLogins.js           # Admin account state
-│   ├── useRolePermissions.js         # Permission data fetching
-│   ├── useRolePermissionsManager.js  # Permission CRUD state
-│   ├── useModuleAccess.js            # Client-side permission checks
-│   ├── useAuth.js                    # Auth session hook
-│   └── useAnimation.js               # Animation utilities
+│   ├── Clock.js                          # Real-time clock for kiosk terminal
+│   ├── admin/                            # Domain-specific admin portal components
+│   │   ├── accounts/                     # User table, account drawer forms, dialogs
+│   │   ├── attendance/                   # Attendance table, date filters, punch badges
+│   │   ├── dashboard/                    # Overview KPI cards, quick actions, punch feed
+│   │   ├── employees/                    # Server client wrapper, employee table, dossier Sheet
+│   │   ├── layout/                       # AdminProviders, Header, HeaderClock, NavUser, PageHeader, SideNav, CommandMenu
+│   │   ├── lists/                        # Department & position management tables & dialogs
+│   │   └── role-permissions/             # Matrix view, role selector, permission toggles
+│   ├── auth/                             # LoginForm, PasswordInput, PermissionGuard, LogoutConfirmationDialog
+│   ├── layout/home/                      # Kiosk components: EmployeeCard, EmployeePhoto, ErrorDisplay
+│   └── ui/                               # Base UI primitives (Base UI & Radix primitives, DeleteConfirmationDialog)
+├── hooks/                                # Custom React hooks
+│   ├── useAccountLogins.js               # Admin account state & operations
+│   ├── useAnimation.js                   # Animation helpers
+│   ├── useAttendance.js                  # RFID scan state machine & audio triggers
+│   ├── useAttendanceLogsManager.js       # Attendance logs state & filtering
+│   ├── useAuth.js                        # Client session hook
+│   ├── useDataManagement.js              # Departments & positions state
+│   ├── useEmployeesManager.js            # Employee mutations & client state
+│   ├── useRolePermissions.js             # Role permission fetching
+│   └── useRolePermissionsManager.js      # Role permission matrix mutations
 ├── lib/
-│   ├── db.js                         # MySQL connection pool + query helpers
-│   ├── HIDListeners.js               # RFID HID keyboard event listeners
-│   └── utils.js                      # cn() classname merge utility
+│   ├── auth.js                           # requireAdminSession route guard helper
+│   ├── db.js                             # mysql2 connection pool & executeQuery helper
+│   ├── HIDListeners.js                   # Hardware RFID HID keyboard event listener
+│   ├── utils.js                          # cn() class merge helper (clsx + tailwind-merge)
+│   ├── server/                           # React Server Component data loaders
+│   │   └── employees.js                  # getEmployeesData, getEmployeeStats, getEmployeeFilterMetadata
+│   └── validations/                      # Centralized Zod request schemas
+│       ├── accounts.js                   # Account create/update schemas
+│       ├── auth.js                       # Login & credential schemas
+│       ├── employees.js                  # Employee create/update schemas
+│       ├── lists.js                      # Department & position schemas
+│       └── index.js
 ├── constants/
-│   ├── index.js                      # App constants
-│   ├── moduleDefinitions.js          # Module definitions for permissions
-│   └── accountConstants.js           # Account-related constants
+│   ├── accountConstants.js               # Account role definitions
+│   ├── auth.js                           # Auth labels and defaults
+│   └── index.js                          # General settings and timeouts
 ├── utils/
-│   └── dateUtils.js                  # Date formatting helpers
-├── databases/                        # SQL schema + migrations
-│   ├── schema.sql                    # Full database schema
-│   ├── rfid_attendance.sql           # Database dump
-│   ├── migration.sql                 # Migration scripts
-│   ├── dev-setup.sql                 # Dev environment seed data
-│   ├── role_permissions.sql          # Permission seed data
-│   └── migrate_to_access_only.sql    # Permission model migration
-├── scripts/                          # CLI setup scripts
-│   ├── create-user.js                # Admin user creation
-│   ├── hash.js                       # Password hashing
-│   ├── setup-role-permissions.js     # Permission seeding
-│   └── setup-simplified-permissions.sql
-├── middleware.js                      # Route protection + permission enforcement
+│   └── dateUtils.js                      # Standardized dayjs date/time formatters
+├── databases/                            # SQL schemas, dumps, and migrations
+│   ├── schema.sql                        # Full relational schema
+│   ├── rfid_attendance.sql               # Active database dump
+│   ├── migration.sql                     # Schema migration scripts
+│   ├── dev-setup.sql                     # Development seed data
+│   ├── role_permissions.sql              # Permission table seed
+│   └── migrate_to_access_only.sql        # Permission structure migration
+├── scripts/
+│   └── seed-admin-users.js               # Seed script for default admin credentials
+├── proxy.js                              # Next.js 16 session proxy & route authorization
 ├── package.json
 ├── next.config.mjs
 └── postcss.config.mjs
 ```
 
+---
+
 ## Request Flow
 
-### RFID Scan Flow (Public)
+### 1. RFID Hardware Scan Flow (Public Kiosk)
 ```
 RFID Card Tap
-  → HID Keyboard Events (lib/HIDListeners.js)
-  → useAttendance hook captures tag
-  → POST /api/attendance/add { rfidTag }
-  → lib/db.js → findEmployeeByRfid()
-  → getLastAttendanceLog() → determine time_in/time_out
-  → createAttendanceLog()
-  → Response with employee info + log type
-  → UI: employee display + audio feedback
+  → USB Reader sends keystrokes with 'Enter' (HID keyboard mode)
+  → lib/HIDListeners.js (filters out active INPUT/TEXTAREA/SELECT/contenteditable)
+  → hooks/useAttendance captures RFID tag
+  → POST /api/attendance/add { rfid_tag }
+  → lib/db.js executeQuery() → lookup employee by rfid_tag
+  → Check last log in attendance_logs for this employee:
+      • If no log, or last log is 'OUT', or last 'IN' is already paired:
+          → INSERT new record with log_type = 'IN', in_time = NOW(), out_time = NULL
+      • If last log is 'IN' with out_time NULL:
+          → UPDATE record with log_type = 'OUT', out_time = NOW()
+  → Update employee status & last_active timestamp
+  → Return employee details + updated log entry
+  → UI: renders EmployeeCard + sound feedback via use-sound
+  → Error/Banner auto-dismisses after 4 seconds
 ```
 
-### Admin Page Flow
+### 2. Admin Portal Navigation Flow
 ```
-Browser → /admin/{page}
-  → middleware.js
-    → getToken() (NextAuth JWT)
-    → hasRouteAccess(pathname, role)
-      → getUserPermissions(role) [cached 5min or API call]
-      → routeModuleMap lookup
-    → Allow / Redirect to /admin
-  → App Router → (root)/layout.js (Sidebar + Header)
-  → Page Component
-    → Custom Hook (e.g., useEmployeesManager)
-    → fetch() → /api/admin/{resource}/route.js
-    → lib/db.js → executeQuery()
-    → JSON Response → State Update → Re-render
+Browser navigates to /admin/{subpage}
+  → proxy.js (Next.js 16 Proxy Middleware)
+      1. Pass through /admin/login and /api/* immediately
+      2. Extract JWT via getToken({ req, secret: NEXTAUTH_SECRET })
+      3. If no token → redirect to /admin/login
+      4. Inspect token.role:
+          • 'superadmin' → allow all routes
+      5. Inspect token.permissions array (embedded directly in JWT on sign-in):
+          • Check if module mapped in routeModuleMap is allowed
+          • If forbidden → redirect to /admin
+  → Server Layout: app/admin/layout.js
+      → AdminProviders (SessionProvider, ThemeProvider)
+      → (root)/layout.js (SidebarProvider, SideNav, Header, Page wrapper)
+  → Page Component:
+      • Server Component (e.g., employees-management/page.js):
+          Fetches data concurrently via lib/server/ (getEmployeesData, getEmployeeStats)
+          Streams server-rendered HTML with zero initial client waterfall
+          Hydrates interactive island (EmployeesManagementClient)
+      • Client Component (e.g., lists/page.js, attendance-logs/page.js):
+          Wrapped with <PermissionGuard module="...">
+          Calls custom hook (useDataManagement, useAttendanceLogsManager)
+          Fetches from protected /api/admin/{resource}
 ```
+
+### 3. Protected Admin API Flow
+```
+Client fetch() to /api/admin/{resource}
+  → Route Handler (app/api/admin/{resource}/route.js)
+  → requireAdminSession(allowedRoles) in lib/auth.js:
+      1. Reads session via getServerSession(authOptions)
+      2. If no session → returns 401 Unauthorized
+      3. If role not in allowedRoles (and not 'superadmin') → returns 403 Forbidden
+  → Next.js 16 dynamic route params awaited: const { id } = await context.params;
+  → Request payload parsed and validated via Zod schema (lib/validations/)
+  → Parameterized query executed via executeQuery({ query, values }) in lib/db.js
+  → Response returned as NextResponse.json({ ... })
+```
+
+---
 
 ## Authentication Architecture
 
-- **Provider**: NextAuth.js v4 with `CredentialsProvider`
-- **Strategy**: JWT (no database sessions)
-- **Token payload**: `{ id, name, username, employee_id, role }`
-- **Session wrapper**: `app/admin/layout.js` wraps admin routes in `<SessionProvider>`
-- **Middleware**: Intercepts all `/admin/*` routes (except `/admin/login` and `/api/*`)
-- **Roles**: `superadmin` (full access), `admin`, `security`, `hr`
+- **Engine**: NextAuth.js v4 with `CredentialsProvider`.
+- **Strategy**: Stateless JWT (`strategy: 'jwt'`), session validity 8 hours.
+- **Identifier**: Login accepts either `username` or `employee_id` (Ashima ID).
+- **Password Hashing**: `bcryptjs` (passwords are never saved in plaintext).
+- **JWT Callback**: During authentication, permissions for the user's role are retrieved from `role_permissions` and attached directly to `token.permissions`.
+- **Session Callback**: Passes `id`, `username`, `employeeId`, `role`, and `permissions` to `session.user`.
+- **Route Proxy**: `proxy.js` guards incoming administrative requests using `getToken()` without external loopback HTTP requests.
+
+---
 
 ## Permission System
 
-### Middleware Layer (Server-side)
-1. `routeModuleMap` maps URL paths → module names
-2. `getUserPermissions(role)` fetches from `/api/admin/role-permissions/by-role` with 5-min cache
-3. Falls back to hardcoded `defaultPermissions` if API is unavailable
-4. Superadmin bypasses all checks
+The system implements a 3-tier defense-in-depth authorization model:
 
-### Client Layer
-- `useModuleAccess` hook checks permissions for conditional UI rendering
-- `useRolePermissions` fetches permission data for the permission management UI
+1. **Proxy Layer (`proxy.js`)**:
+   - Intercepts requests before Next.js page rendering.
+   - Evaluates `token.permissions` against `routeModuleMap`.
+   - Denied users are redirected to `/admin` with zero information leakage.
 
-## Data Layer
+2. **API Endpoint Layer (`lib/auth.js`)**:
+   - Every handler in `app/api/admin/*` begins with `requireAdminSession(allowedRoles)`.
+   - Rejects unauthenticated requests with `401 Unauthorized`.
+   - Rejects unauthorized roles with `403 Forbidden`.
 
-- **Connection**: Single `mysql2/promise` connection pool in `lib/db.js` (10 connections max)
-- **Query pattern**: `executeQuery({ query, values })` — parameterized queries throughout
-- **No ORM**: Raw SQL queries in API route handlers and `lib/db.js` helper functions
-- **API routes**: Each resource has its own `route.js` under `app/api/admin/{resource}/`
+3. **Client UI Layer (`components/auth/PermissionGuard.jsx`)**:
+   - Admin subpages wrap their views in `<PermissionGuard module="...">`.
+   - Renders a clean access-denied state if permissions are revoked, hiding unauthorized actions and buttons.
+   - Navigation links in `<SideNav />` and items in `<CommandMenu />` are dynamically filtered based on session permissions.
 
-## Component Patterns
+---
 
-- **Pages** are thin — they delegate to custom hooks for state and to component trees for UI
-- **Custom hooks** encapsulate API calls, state management, and business logic
-- **UI primitives** in `components/ui/` follow Radix UI + CVA (class-variance-authority) patterns
-- **Admin components** are organized by feature domain under `components/admin/`
-- **Forms** use React Hook Form + Zod schemas for validation
+## Data Layer & Performance
+
+- **Connection Pool**: Single `mysql2/promise` connection pool initialized in `lib/db.js` (max 10 connections).
+- **Parameterized Queries**: All queries execute through `executeQuery({ query, values })` to eliminate SQL injection vulnerabilities.
+- **Server Component Preloading**: Core admin modules use Server Components (`lib/server/`) to prefetch table data, metadata, and KPI metrics on the server concurrently via `Promise.all()`, eliminating client waterfall requests.
+- **Client Islands**: Heavy interactive elements (filters, modals, drawers, search inputs) are scoped as Client Components (`"use client"`) that receive initial data via props.
+
+---
+
+## Design System & Layout Standards
+
+All pages in `app/admin/(root)/*` adhere strictly to the 4-tier layout architecture:
+1. **Tier 1 (`PageHeader`)**: Interactive breadcrumbs on the left, synchronized server clock on the right.
+2. **Tier 2 (Command Header)**: Page H1 title, subtitle, and primary actions (Export CSV, Add Record).
+3. **Tier 3 (KPI Strip)**: Flat-bordered summary metric cards with status indicator dots and click-to-filter capability.
+4. **Tier 4 (Main Workspace Card)**: Search input, faceted filter dropdowns, high-density table, and pagination controls.
+- **Outer Shell Padding**: Centralized in `app/admin/(root)/layout.js` (`px-4 sm:px-6 lg:px-8 py-6`). Individual pages must never declare outer `container`, `mx-auto`, or padding.
+- **Drawer Primitives**: Complex form editing and detailed record dossiers use slide-over `<Sheet>` components (`components/ui/sheet.jsx`) to preserve table scroll position.
+- **Destructive Actions**: Always confirmed via `<DeleteConfirmationDialog>`.

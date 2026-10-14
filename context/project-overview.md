@@ -2,84 +2,89 @@
 
 ## Summary
 
-The **RFID Attendance System** is a full-stack web application for managing employee attendance using RFID card scanning. Employees tap their RFID cards on a reader (HID keyboard emulation mode), and the system automatically logs check-in/check-out events. Administrators manage employees, departments, positions, attendance records, and role-based access through a comprehensive admin dashboard.
+The **RFID Attendance System** is a high-performance full-stack web application built with **Next.js 16** (App Router) and **React 19** for tracking and managing employee attendance via hardware RFID card scanning. Employees tap their RFID cards on a USB reader (operating in HID keyboard emulation mode), and the system automatically logs check-in/check-out events with instant audio-visual feedback. 
+
+Administrators manage employee records, RFID credentials, departmental lists, attendance logs, user accounts, and role-based permissions through an authenticated admin portal that follows a standard 4-tier layout with Server Components and slide-over sheets.
 
 ## Tech Stack
 
-| Layer          | Technology                                                     |
-| -------------- | -------------------------------------------------------------- |
-| Framework      | **Next.js 15.3.1** (App Router, Turbopack dev server)          |
-| UI Library     | **React 19**                                                   |
-| Styling        | **Tailwind CSS 4** with `tw-animate-css`                       |
-| UI Components  | **Radix UI** (dialog, select, tabs, switch, tooltip, etc.)     |
-| Tables         | **TanStack React Table 8**                                     |
-| Animations     | **Framer Motion 12**                                           |
-| Forms          | **React Hook Form 7** + **Zod** validation + `@hookform/resolvers` |
-| Icons          | **Lucide React**, **React Icons**                              |
-| Auth           | **NextAuth.js 4** (credentials provider, JWT strategy)         |
-| Database       | **MySQL** via `mysql2/promise` connection pool                 |
-| Password Hash  | **bcryptjs**                                                   |
-| Date Handling  | **date-fns** and **dayjs**                                     |
-| Data Export    | **json2csv**                                                   |
-| Audio Feedback | **use-sound**                                                  |
-| Notifications  | **Sonner (shadcn/ui)**                                         |
+| Layer          | Technology                                                             |
+| -------------- | ---------------------------------------------------------------------- |
+| Framework      | **Next.js 16.4.0** (App Router, Turbopack dev server)                  |
+| UI Library     | **React 19.3.0** (Server Components + Client Islands)                  |
+| Styling        | **Tailwind CSS 4.3.3** with `@tailwindcss/postcss` & `tw-animate-css`  |
+| UI Components  | **Radix UI** & **Base UI** (`@base-ui/react`) primitives               |
+| Tables         | **TanStack React Table 8**                                             |
+| Animations     | **Framer Motion 12**                                                   |
+| Forms & Validation | **React Hook Form 7** + **Zod 3.25** schemas in `lib/validations/` |
+| Icons          | **Lucide React** (standardized across the application)                 |
+| Auth           | **NextAuth.js 4** (credentials provider, JWT strategy with permissions)|
+| Route Security | **`proxy.js`** (Next.js 16 proxy middleware with JWT permission check) |
+| Database       | **MySQL** via `mysql2/promise` connection pool                         |
+| Password Hash  | **bcryptjs**                                                           |
+| Date Handling  | **dayjs** (standardized across the application)                        |
+| Audio Feedback | **use-sound**                                                          |
+| Notifications  | **Sonner** (`sonner`)                                                  |
 
 ## Key Features
 
-### Employee-Facing (Public Page)
-- RFID card tap → automatic `time_in` / `time_out` logging
-- Real-time clock display with animations
-- Employee info + photo display upon scan
-- Audio feedback on success/failure
+### Employee-Facing (Kiosk Attendance Terminal)
+- **Fast RFID Card Tap**: Automatic `IN` / `OUT` paired logging via hardware HID listener (`lib/HIDListeners.js`).
+- **Input Guarding**: HID listener ignores focused form inputs (`INPUT`, `TEXTAREA`, `SELECT`, `contenteditable`) to prevent unintended keystroke capture.
+- **Real-Time Display**: Live clock, employee information, base64 photo avatar, and punch status.
+- **Audio & Visual Feedback**: Sound cues (`use-sound`) with auto-dismissing error banners (4s).
 
-### Admin Dashboard
-- **Dashboard** — aggregated statistics (total employees, today's attendance, department metrics)
-- **Employee Management** — CRUD employees with photo upload, RFID tag assignment, department/position linking
-- **Attendance Logs** — filter, search, export to CSV
-- **Data Management (Lists)** — manage departments and positions
-- **Account Logins** — create/manage admin user accounts
-- **Role Permissions** — configure module-level access per role
+### Admin Portal
+- **Dashboard Overview (`/admin`)**: Aggregated system metrics (total employees, today's attendance punches, department counts) and real-time activity feed.
+- **Employee Management (`/admin/employees-management`)**: React Server Component architecture with concurrent data fetching (`lib/server/employees.js`). CRUD records, base64 photo upload, RFID card assignment, department/position links, and slide-over `<Sheet>` dossiers.
+- **Attendance Logs (`/admin/attendance-logs`)**: Punch history viewer with date-range filters, status pills, and client-side CSV export.
+- **Data Management (`/admin/lists`)**: Department and position management with native `AUTO_INCREMENT` IDs and leadership flags.
+- **Account Logins (`/admin/account-logins`)**: Admin user management with bcrypt hashing and role assignment.
+- **Role Permissions (`/admin/role-permissions`)**: Granular module access matrix configured per role (`superadmin`, `admin`, `security`, `hr`).
+- **Global Command Menu (`<CommandMenu />`)**: Quick navigation palette accessible via `Cmd+K` / `Ctrl+K`.
 
-### Security
-- NextAuth.js session/JWT authentication
-- Role-based access: `superadmin`, `admin`, `security`, `hr`
-- Middleware-enforced route protection with permission checks (database-backed with fallback defaults)
-- Permissions cache with 5-minute TTL in middleware
+### Security & Architecture
+- **JWT Permissions**: User role permissions are embedded directly into the NextAuth JWT token on login, eliminating runtime loopback HTTP requests.
+- **Protected Routes**: Next.js 16 `proxy.js` guards `/admin/*` routes based on JWT permissions with fallback default permissions.
+- **API Guarding**: All `/api/admin/*` endpoints strictly enforce `requireAdminSession(allowedRoles)` from `lib/auth.js`.
+- **Validation**: Incoming API requests are validated with centralized Zod schemas in `lib/validations/`.
+- **Design System Standards**: All admin pages strictly adhere to the 4-tier layout (`PageHeader` -> Command Header -> KPI Strip -> Main Workspace Card) with `<div className="space-y-6">` root wrapper and semantic color tokens.
 
 ## Environment Variables
 
-| Variable           | Purpose                                |
-| ------------------ | -------------------------------------- |
-| `DB_HOST`          | MySQL host                             |
-| `DB_USER`          | MySQL username                         |
-| `DB_PASSWORD`      | MySQL password                         |
-| `DB_NAME`          | MySQL database name (`rfid_attendance`)|
-| `NEXTAUTH_SECRET`  | Secret key for NextAuth.js JWT signing |
-| `NEXTAUTH_URL`     | Application base URL                   |
+| Variable           | Purpose                                 |
+| ------------------ | --------------------------------------- |
+| `DB_HOST`          | MySQL host                              |
+| `DB_USER`          | MySQL username                          |
+| `DB_PASSWORD`      | MySQL password                          |
+| `DB_NAME`          | MySQL database name (`rfid_attendance`) |
+| `NEXTAUTH_SECRET`  | Secret key for NextAuth.js JWT signing  |
+| `NEXTAUTH_URL`     | Application base URL (`http://localhost:3000`) |
 
-## Development
+## Development & Scripts
 
 ```bash
 # Install dependencies
 npm install
 
-# Start dev server (Turbopack)
+# Seed admin user accounts (all 4 roles: superadmin, admin, security, hr)
+npm run seed:admins
+
+# Start dev server with Turbopack
 npm run dev
 
-# Production build
-npm run build && npm start
-```
+# Code linting (ESLint 9)
+npm run lint
 
-### Setup Scripts
-- `scripts/create-user.js` — create initial admin user
-- `scripts/hash.js` — bcrypt password hashing utility
-- `scripts/setup-role-permissions.js` — seed default role permissions
+# Production build verification
+npm run build
+```
 
 ## Conventions
 
-- **App Router** — all routes under `app/` using the Next.js 13+ App Router pattern
-- **Route groups** — admin pages use `(root)` route group for shared layout
-- **Custom hooks** — all business logic hooks live in `hooks/` (e.g., `useEmployeesManager`, `useAttendanceLogsManager`)
-- **Component organization** — `components/admin/` for dashboard components, `components/ui/` for base primitives
-- **Constants** — centralized in `constants/` (nav items, module definitions, auth config)
-- **Database layer** — `lib/db.js` provides `executeQuery()` and convenience functions; all API routes call this directly
+- **App Router**: Next.js 16 App Router using `app/` and route group `(root)` for shared admin portal layouts.
+- **Server Components & Islands**: Preload read-heavy page data server-side in `page.js` via `lib/server/` and delegate interactivity to Client Islands.
+- **Server Session Guard**: Always call `const { error } = await requireAdminSession(allowedRoles)` at the top of admin API handlers.
+- **Dynamic Route Params**: Always await route params in Next.js 16 dynamic handlers: `const { id } = await context.params`.
+- **Centralized Layout**: Outer margins, max-widths, and padding are managed by `app/admin/(root)/layout.js`. Admin pages must never specify outer container widths.
+- **UI Dialogs & Drawers**: Slide-over `<Sheet>` for inspection/creation workflows; `<DeleteConfirmationDialog>` for destructive actions.
