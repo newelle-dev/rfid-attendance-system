@@ -2,33 +2,39 @@
  * Custom hook for managing employee records, filtering, and CRUD operations.
  */
 
-import { useState, useCallback, useEffect, startTransition } from "react";
+import { useState, useCallback, useEffect, useRef, startTransition } from "react";
 import { toast } from "sonner";
 
-export const useEmployeesManager = () => {
+export const useEmployeesManager = (initialData = {}) => {
   // Core data state
-  const [employees, setEmployees] = useState([]);
-  const [totalEmployees, setTotalEmployees] = useState(0);
-  const [stats, setStats] = useState({
-    total: 0,
-    active: 0,
-    inactive: 0,
-    resigned: 0,
-  });
+  const [employees, setEmployees] = useState(initialData.employees || []);
+  const [totalEmployees, setTotalEmployees] = useState(initialData.totalEmployees || 0);
+  const [stats, setStats] = useState(
+    initialData.stats || {
+      total: 0,
+      active: 0,
+      inactive: 0,
+      resigned: 0,
+    }
+  );
 
   // Metadata state
-  const [departments, setDepartments] = useState([]);
-  const [positions, setPositions] = useState([]);
-  const [leaders, setLeaders] = useState([]);
+  const [departments, setDepartments] = useState(initialData.departments || []);
+  const [positions, setPositions] = useState(initialData.positions || []);
+  const [leaders, setLeaders] = useState(initialData.leaders || []);
 
   // Loading states
-  const [loading, setLoading] = useState(true);
-  const [loadingStats, setLoadingStats] = useState(true);
-  const [loadingMetadata, setLoadingMetadata] = useState(false);
+  const [loading, setLoading] = useState(!initialData.employees);
+  const [loadingStats, setLoadingStats] = useState(!initialData.stats);
+  const [loadingMetadata, setLoadingMetadata] = useState(!initialData.departments);
   const [submitting, setSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(initialData.error || null);
+
+  // Track initial mount to avoid duplicate fetch waterfall when server data is provided
+  const isInitialEmployeesMount = useRef(Boolean(initialData.employees));
+  const isInitialMetadataMount = useRef(Boolean(initialData.stats && initialData.departments));
 
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState("");
@@ -138,14 +144,24 @@ export const useEmployeesManager = () => {
     }
   }, [searchQuery, filters, pagination.pageIndex, pagination.pageSize]);
 
-  // Initial loads
+  // Initial loads / interaction updates
   useEffect(() => {
+    if (isInitialEmployeesMount.current) {
+      isInitialEmployeesMount.current = false;
+      return;
+    }
+
     startTransition(() => {
       fetchEmployees();
     });
   }, [fetchEmployees]);
 
   useEffect(() => {
+    if (isInitialMetadataMount.current) {
+      isInitialMetadataMount.current = false;
+      return;
+    }
+
     startTransition(() => {
       fetchStats();
       fetchMetadata();
