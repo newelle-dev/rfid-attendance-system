@@ -2,6 +2,7 @@ import { executeQuery } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth";
 import { employeeSchema } from "@/lib/validations/employees";
+import { getEmployeesData } from "@/lib/server/employees";
 import { z } from "zod";
 
 // Helper function to decode Base64 to binary
@@ -23,84 +24,18 @@ export async function GET(req) {
     const position = searchParams.get("position") || "";
     const leader = searchParams.get("leader") || "";
     const status = searchParams.get("status") || "";
-    const offset = (page - 1) * limit;
 
-    // Dynamic WHERE clause for search and filters
-    const whereClause = `
-      WHERE 
-        (e.ashima_id LIKE ? OR e.name LIKE ?)
-        ${department ? `AND d.id = ?` : ""}
-        ${position ? `AND p.id = ?` : ""}
-        ${leader ? `AND l.id = ?` : ""}
-        ${status ? `AND e.status = ?` : ""}
-    `;
-
-    const query = `
-      SELECT 
-        e.id, e.ashima_id, e.name, 
-        d.name AS department, p.name AS position, 
-        l.name AS leader_name,
-        e.rfid_tag, e.photo, e.emp_stat, e.status,
-        e.department_id, e.position_id, e.leader
-      FROM 
-        employees e
-      LEFT JOIN 
-        departments d ON e.department_id = d.id
-      LEFT JOIN 
-        positions p ON e.position_id = p.id
-      LEFT JOIN
-        employees l ON e.leader = l.id 
-      ${whereClause}
-      ORDER BY 
-        e.id DESC
-      LIMIT ? OFFSET ?
-    `;
-
-    const values = [
-      `%${search}%`,
-      `%${search}%`,
-      ...(department ? [department] : []),
-      ...(position ? [position] : []),
-      ...(leader ? [leader] : []),
-      ...(status ? [status] : []),
-      limit,
-      offset,
-    ];
-
-    const employees = await executeQuery({ query, values });
-    const formattedEmployees = employees.map((employee) => ({
-      ...employee,
-      photo: employee.photo
-        ? `data:image/jpeg;base64,${Buffer.from(employee.photo).toString('base64')}`
-        : null,
-    }));
-
-    const countQuery = `
-      SELECT COUNT(*) AS total 
-      FROM employees e
-      LEFT JOIN departments d ON e.department_id = d.id
-      LEFT JOIN positions p ON e.position_id = p.id
-      LEFT JOIN employees l ON e.leader = l.id
-      ${whereClause}
-    `;
-
-    const countValues = [
-      `%${search}%`,
-      `%${search}%`,
-      ...(department ? [department] : []),
-      ...(position ? [position] : []),
-      ...(leader ? [leader] : []),
-      ...(status ? [status] : []),
-    ];
-
-    const totalResult = await executeQuery({ query: countQuery, values: countValues });
-
-    return NextResponse.json({
-      data: formattedEmployees,
-      total: totalResult[0]?.total || 0,
+    const result = await getEmployeesData({
       page,
       limit,
+      search,
+      department,
+      position,
+      leader,
+      status,
     });
+
+    return NextResponse.json(result);
   } catch (err) {
     console.error("Failed to fetch employees:", err);
     return NextResponse.json(
