@@ -1,50 +1,107 @@
 /**
- * Custom hook for managing employee data, state, and operations
- * Centralizes all employee-related business logic and API calls
+ * Custom hook for managing employee records, filtering, and CRUD operations.
  */
 
-import { useState, useCallback, useEffect } from 'react';
-import { toast } from 'sonner';
+import { useState, useCallback, useEffect, startTransition } from "react";
+import { toast } from "sonner";
 
-/**
- * Hook for managing employees data and operations
- * @returns {Object} Employee management state and functions
- */
 export const useEmployeesManager = () => {
   // Core data state
   const [employees, setEmployees] = useState([]);
   const [totalEmployees, setTotalEmployees] = useState(0);
-  
-  // Loading states
-  const [loading, setLoading] = useState(true);
-  const [loadingMetadata, setLoadingMetadata] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  
-  // Filter and search state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({ 
-    department: '', 
-    position: '', 
-    leader: '', 
-    status: '' 
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    inactive: 0,
+    resigned: 0,
   });
-  const [pagination, setPagination] = useState({ 
-    pageIndex: 0, 
-    pageSize: 10 
-  });
-  
+
   // Metadata state
   const [departments, setDepartments] = useState([]);
   const [positions, setPositions] = useState([]);
   const [leaders, setLeaders] = useState([]);
-  
-  // Dialog state
-  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
-  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
-  const [currentEmployee, setCurrentEmployee] = useState(null);
-  
-  // Error state
+
+  // Loading states
+  const [loading, setLoading] = useState(true);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [loadingMetadata, setLoadingMetadata] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState(null);
+
+  // Filter & Search states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filters, setFilters] = useState({
+    department: "",
+    position: "",
+    status: "",
+    leader: "",
+  });
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  // Slide-over Sheet states
+  const [isDossierOpen, setIsDossierOpen] = useState(false);
+  const [isFormSheetOpen, setIsFormSheetOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+
+  // Deletion Dialog states
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  /**
+   * Fetches KPI Stats
+   */
+  const fetchStats = useCallback(async () => {
+    try {
+      setLoadingStats(true);
+      const res = await fetch("/api/admin/employees/stats");
+      if (!res.ok) throw new Error("Failed to load employee metrics");
+      const data = await res.json();
+      setStats({
+        total: data.total ?? data.active + data.inactive + data.resigned,
+        active: data.active || 0,
+        inactive: data.inactive || 0,
+        resigned: data.resigned || 0,
+      });
+    } catch (err) {
+      console.error("Error fetching employee stats:", err);
+    } finally {
+      setLoadingStats(false);
+    }
+  }, []);
+
+  /**
+   * Fetches metadata for dropdowns
+   */
+  const fetchMetadata = useCallback(async () => {
+    try {
+      setLoadingMetadata(true);
+      const [deptRes, posRes, leadRes] = await Promise.all([
+        fetch("/api/admin/departments"),
+        fetch("/api/admin/positions"),
+        fetch("/api/admin/leaders?limit=1000"),
+      ]);
+
+      if (deptRes.ok && posRes.ok && leadRes.ok) {
+        const [deptData, posData, leadData] = await Promise.all([
+          deptRes.json(),
+          posRes.json(),
+          leadRes.json(),
+        ]);
+        setDepartments(deptData.departments || []);
+        setPositions(posData.positions || []);
+        setLeaders(leadData.leaders || []);
+      }
+    } catch (err) {
+      console.error("Error loading employee metadata:", err);
+    } finally {
+      setLoadingMetadata(false);
+    }
+  }, []);
 
   /**
    * Fetches employees with current filters and pagination
@@ -53,192 +110,319 @@ export const useEmployeesManager = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const searchParams = new URLSearchParams({
         search: searchQuery,
-        page: pagination.pageIndex + 1,
-        limit: pagination.pageSize,
-        department: filters.department || '',
-        position: filters.position || '',
-        status: filters.status || '',
-        leader: filters.leader || '',
+        page: String(pagination.pageIndex + 1),
+        limit: String(pagination.pageSize),
+        department: filters.department || "",
+        position: filters.position || "",
+        status: filters.status || "",
+        leader: filters.leader || "",
       });
 
       const response = await fetch(`/api/admin/employees?${searchParams}`);
-      
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch employees');
+        throw new Error(errorData.message || "Failed to fetch employees");
       }
-      
+
       const data = await response.json();
       setEmployees(data.data || []);
       setTotalEmployees(data.total || 0);
-    } catch (error) {
-      console.error('Error fetching employees:', error);
-      setError(error.message);
-      toast.error(error.message || 'Failed to fetch employees');
+    } catch (err) {
+      console.error("Error fetching employees:", err);
+      setError(err.message || "Failed to load employees");
     } finally {
       setLoading(false);
     }
-  }, [pagination.pageIndex, pagination.pageSize, filters, searchQuery]);
+  }, [searchQuery, filters, pagination.pageIndex, pagination.pageSize]);
 
-  /**
-   * Fetches metadata (departments, positions, leaders) for form options
-   */
-  const fetchMetadata = useCallback(async () => {
-    try {
-      setLoadingMetadata(true);
-      setError(null);
-      
-      const [deptResponse, posResponse, leadersResponse] = await Promise.all([
-        fetch('/api/admin/departments'),
-        fetch('/api/admin/positions'),
-        fetch('/api/admin/leaders?limit=1000')
-      ]);
-      
-      if (!deptResponse.ok || !posResponse.ok || !leadersResponse.ok) {
-        throw new Error('Failed to fetch form options');
-      }
-      
-      const [deptData, posData, leadersData] = await Promise.all([
-        deptResponse.json(),
-        posResponse.json(),
-        leadersResponse.json()
-      ]);
-      
-      setDepartments(deptData.departments || []);
-      setPositions(posData.positions || []);
-      setLeaders(leadersData.leaders || []);
-    } catch (error) {
-      console.error('Error fetching metadata:', error);
-      setError(error.message);
-      toast.error('Failed to load form options');
-    } finally {
-      setLoadingMetadata(false);
-    }
+  // Initial loads
+  useEffect(() => {
+    startTransition(() => {
+      fetchEmployees();
+    });
+  }, [fetchEmployees]);
+
+  useEffect(() => {
+    startTransition(() => {
+      fetchStats();
+      fetchMetadata();
+    });
+  }, [fetchStats, fetchMetadata]);
+
+  // Handle Search with debounce / reset page
+  const handleSearchChange = useCallback((query) => {
+    setSearchQuery(query);
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   }, []);
 
-  /**
-   * Handles employee form submission (create/update)
-   * @param {Object} formData - Employee form data
-   * @param {string} imagePreview - Base64 image data
-   */
-  const handleEmployeeSubmit = useCallback(async (formData, imagePreview) => {
-    try {
-      setSubmitting(true);
-      setError(null);
-
-      const method = currentEmployee ? 'PUT' : 'POST';
-      const url = currentEmployee 
-        ? `/api/admin/employees/${currentEmployee.id}`
-        : '/api/admin/employees';
-
-      const apiData = {
-        ...formData,
-        photo: imagePreview,
-      };
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(apiData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save employee');
-      }
-
-      // Close dialog and refresh data
-      setIsFormDialogOpen(false);
-      setCurrentEmployee(null);
-      await fetchEmployees();
-      
-      toast.success(`Employee ${currentEmployee ? 'updated' : 'added'} successfully`);
-    } catch (error) {
-      console.error('Error submitting employee data:', error);
-      setError(error.message);
-      toast.error(error.message || 'Failed to save employee');
-    } finally {
-      setSubmitting(false);
-    }
-  }, [currentEmployee, fetchEmployees]);
-
-  /**
-   * Opens the employee form dialog
-   * @param {Object|null} employee - Employee to edit, or null for new employee
-   */
-  const openEmployeeForm = useCallback((employee = null) => {
-    setCurrentEmployee(employee);
-    setIsFormDialogOpen(true);
+  // Handle faceted filter changes
+  const handleFilterChange = useCallback((newFilters) => {
+    setFilters(newFilters);
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   }, []);
 
-  /**
-   * Resets all filters to default values
-   */
+  // Handle clicking a KPI status card
+  const handleStatusFilterChange = useCallback((statusValue) => {
+    setFilters((prev) => ({
+      ...prev,
+      status: statusValue,
+    }));
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, []);
+
+  // Reset all filters
   const resetFilters = useCallback(() => {
-    setFilters({ department: '', position: '', leader: '', status: '' });
-    setSearchQuery('');
-    setPagination({ pageIndex: 0, pageSize: 10 });
+    setSearchQuery("");
+    setFilters({ department: "", position: "", status: "", leader: "" });
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   }, []);
 
-  /**
-   * Refreshes employee data
-   */
+  // Refresh
   const refreshEmployees = useCallback(() => {
     fetchEmployees();
-  }, [fetchEmployees]);
+    fetchStats();
+  }, [fetchEmployees, fetchStats]);
 
-  // Initial data loading
-  useEffect(() => {
-    fetchEmployees();
-  }, [fetchEmployees]);
+  // Open Dossier sheet
+  const openDossier = useCallback((employee) => {
+    setSelectedEmployee(employee);
+    setIsDossierOpen(true);
+    setIsFormSheetOpen(false);
+  }, []);
 
-  useEffect(() => {
-    fetchMetadata();
-  }, [fetchMetadata]);
+  // Open Create Form sheet
+  const openCreateForm = useCallback(() => {
+    setSelectedEmployee(null);
+    setIsFormSheetOpen(true);
+    setIsDossierOpen(false);
+  }, []);
+
+  // Open Edit Form sheet
+  const openEditForm = useCallback((employee) => {
+    setSelectedEmployee(employee);
+    setIsFormSheetOpen(true);
+    setIsDossierOpen(false);
+  }, []);
+
+  // Handle form submission (create or update)
+  const handleEmployeeSubmit = useCallback(
+    async (formData, photoPreview) => {
+      try {
+        setSubmitting(true);
+        const isEditing = Boolean(selectedEmployee);
+        const url = isEditing
+          ? `/api/admin/employees/${selectedEmployee.id}`
+          : "/api/admin/employees";
+        const method = isEditing ? "PUT" : "POST";
+
+        const apiPayload = {
+          ...formData,
+          photo: photoPreview,
+        };
+
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(apiPayload),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.message || "Failed to save employee");
+        }
+
+        toast.success(
+          `Employee ${isEditing ? "updated" : "created"} successfully`
+        );
+        setIsFormSheetOpen(false);
+        setSelectedEmployee(null);
+
+        // Refresh list and stats
+        await Promise.all([fetchEmployees(), fetchStats()]);
+      } catch (err) {
+        console.error("Submission error:", err);
+        toast.error(err.message || "Failed to save employee");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [selectedEmployee, fetchEmployees, fetchStats]
+  );
+
+  // Deletion dialog handlers
+  const openDeleteDialog = useCallback((employee) => {
+    setDeleteTarget(employee);
+    setIsDeleteDialogOpen(true);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    try {
+      setIsDeleting(true);
+      const res = await fetch(`/api/admin/employees?id=${deleteTarget.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || "Failed to delete employee");
+      }
+
+      toast.success(`Employee ${deleteTarget.name} deleted successfully`);
+      setIsDeleteDialogOpen(false);
+
+      if (selectedEmployee?.id === deleteTarget.id) {
+        setIsDossierOpen(false);
+        setIsFormSheetOpen(false);
+        setSelectedEmployee(null);
+      }
+      setDeleteTarget(null);
+
+      // Refresh data and stats
+      await Promise.all([fetchEmployees(), fetchStats()]);
+    } catch (err) {
+      console.error("Deletion error:", err);
+      toast.error(err.message || "Failed to delete employee");
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deleteTarget, selectedEmployee, fetchEmployees, fetchStats]);
+
+  // CSV Export handler
+  const handleExportCsv = useCallback(async () => {
+    try {
+      setIsExporting(true);
+      toast.info("Generating CSV export...");
+
+      const searchParams = new URLSearchParams({
+        search: searchQuery,
+        page: "1",
+        limit: "10000",
+        department: filters.department || "",
+        position: filters.position || "",
+        status: filters.status || "",
+        leader: filters.leader || "",
+      });
+
+      const res = await fetch(`/api/admin/employees?${searchParams}`);
+      if (!res.ok) throw new Error("Failed to export employees");
+
+      const json = await res.json();
+      const data = json.data || [];
+
+      if (data.length === 0) {
+        toast.warning("No employees matching current filter to export");
+        return;
+      }
+
+      const headers = [
+        "Ashima ID",
+        "Full Name",
+        "Department",
+        "Position",
+        "Reporting To",
+        "RFID Tag",
+        "Employment Type",
+        "Status",
+      ];
+
+      const escapeCsv = (val) => {
+        if (val === null || val === undefined) return '""';
+        const str = String(val).replace(/"/g, '""');
+        return `"${str}"`;
+      };
+
+      const csvRows = [
+        headers.join(","),
+        ...data.map((emp) =>
+          [
+            escapeCsv(emp.ashima_id),
+            escapeCsv(emp.name),
+            escapeCsv(emp.department),
+            escapeCsv(emp.position),
+            escapeCsv(emp.leader_name),
+            escapeCsv(emp.rfid_tag),
+            escapeCsv(emp.emp_stat),
+            escapeCsv(emp.status),
+          ].join(",")
+        ),
+      ];
+
+      const blob = new Blob([csvRows.join("\n")], {
+        type: "text/csv;charset=utf-8;",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `employees_roster_${new Date().toISOString().split("T")[0]}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success(`Exported ${data.length} employee records to CSV`);
+    } catch (err) {
+      console.error("Export error:", err);
+      toast.error(err.message || "Failed to export CSV");
+    } finally {
+      setIsExporting(false);
+    }
+  }, [searchQuery, filters]);
 
   return {
-    // Data state
+    // Data
     employees,
     totalEmployees,
+    stats,
     departments,
     positions,
     leaders,
-    
-    // Loading states
+
+    // Loading & Error
     loading,
+    loadingStats,
     loadingMetadata,
     submitting,
-    
-    // Filter and search state
+    isDeleting,
+    isExporting,
+    error,
+
+    // Filters & Pagination
     searchQuery,
-    setSearchQuery,
+    setSearchQuery: handleSearchChange,
     filters,
-    setFilters,
+    setFilters: handleFilterChange,
+    handleStatusFilterChange,
+    resetFilters,
     pagination,
     setPagination,
-    
-    // Dialog state
-    isFormDialogOpen,
-    setIsFormDialogOpen,
-    isFilterDialogOpen,
-    setIsFilterDialogOpen,
-    currentEmployee,
-    
-    // Error state
-    error,
-    setError,
-    
-    // Actions
-    handleEmployeeSubmit,
-    openEmployeeForm,
-    resetFilters,
     refreshEmployees,
-    fetchEmployees,
-    fetchMetadata,
+
+    // Sheets & Dialogs
+    isDossierOpen,
+    setIsDossierOpen,
+    isFormSheetOpen,
+    setIsFormSheetOpen,
+    selectedEmployee,
+    openDossier,
+    openCreateForm,
+    openEditForm,
+    handleEmployeeSubmit,
+
+    // Deletion
+    deleteTarget,
+    isDeleteDialogOpen,
+    setIsDeleteDialogOpen,
+    openDeleteDialog,
+    confirmDelete,
+
+    // Export
+    handleExportCsv,
   };
 };

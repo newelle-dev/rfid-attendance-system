@@ -119,3 +119,30 @@ export async function PUT(req, context) {
     );
   }
 }
+
+// DELETE: Delete an Employee by ID
+export async function DELETE(req, context) {
+  const { error } = await requireAdminSession(['admin', 'hr']);
+  if (error) return error;
+
+  try {
+    const { id } = await context.params;
+    if (!id) {
+      return NextResponse.json(
+        { message: "Employee ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const query = `DELETE FROM employees WHERE id = ?`;
+    await executeQuery({ query, values: [id] });
+
+    return NextResponse.json({ message: "Employee deleted successfully" });
+  } catch (err) {
+    console.error("Failed to delete employee:", err);
+    return NextResponse.json(
+      { message: "Failed to delete employee" },
+      { status: 500 }
+    );
+  }
+}

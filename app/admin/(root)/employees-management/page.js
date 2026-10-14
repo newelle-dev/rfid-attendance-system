@@ -1,230 +1,188 @@
-/**
- * Employee Management Page
- * 
- * Main page for managing employees with comprehensive CRUD operations,
- * filtering, searching, and data export/import capabilities.
- * 
- * Features:
- * - Employee listing with pagination
- * - Advanced search and filtering
- * - Employee creation and editing
- * - Employee deletion with confirmation
- * - Dashboard statistics
- * - Data export/import (future feature)
- * - Responsive design and accessibility
- */
-
 "use client";
 
 import React, { useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import EmployeeTable from "@/components/admin/employees/EmployeeTable";
-import EmployeeFormDialog from "@/components/admin/employees/EmployeeFormDialog";
-import FilterDialog from "@/components/admin/employees/FilterDialog";
-import DashboardStats from "@/components/admin/employees/DashboardStats";
-import SearchAndFilterControls from "@/components/admin/employees/SearchAndFilterControls";
-import EmployeeActions from "@/components/admin/employees/EmployeeActions";
-import { LoadingState, EmptyState, ErrorState } from "@/components/admin/employees/EmployeeStates";
-import { useEmployeesManager } from "@/hooks/useEmployeesManager";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import PageHeader from "@/components/admin/layout/PageHeader";
+import EmployeeManagementHeader from "@/components/admin/employees/EmployeeManagementHeader";
+import EmployeeStatsCards from "@/components/admin/employees/EmployeeStatsCards";
+import EmployeeFilterBar from "@/components/admin/employees/EmployeeFilterBar";
+import EmployeeTable from "@/components/admin/employees/EmployeeTable";
+import EmployeeDossierSheet from "@/components/admin/employees/EmployeeDossierSheet";
+import EmployeeFormSheet from "@/components/admin/employees/EmployeeFormSheet";
+import {
+  LoadingState,
+  EmptyState,
+  ErrorState,
+} from "@/components/admin/employees/EmployeeStates";
+import DeleteConfirmationDialog from "@/components/ui/DeleteConfirmationDialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { useEmployeesManager } from "@/hooks/useEmployeesManager";
 
 /**
  * EmployeesManagementPage Component
- * Main component for employee management functionality
+ * Redesigned Command Hub for employee records, live RFID ID preview, and personnel management.
  */
 export default function EmployeesManagementPage() {
   const {
-    // Data state
+    // Data
     employees,
     totalEmployees,
+    stats,
     departments,
     positions,
     leaders,
-    
-    // Loading states
+
+    // Loading & Error
     loading,
-    loadingMetadata,
+    loadingStats,
     submitting,
-    
-    // Filter and search state
+    isDeleting,
+    isExporting,
+    error,
+
+    // Filters & Pagination
     searchQuery,
     setSearchQuery,
     filters,
     setFilters,
+    handleStatusFilterChange,
+    resetFilters,
     pagination,
     setPagination,
-    
-    // Dialog state
-    isFormDialogOpen,
-    setIsFormDialogOpen,
-    isFilterDialogOpen,
-    setIsFilterDialogOpen,
-    currentEmployee,
-    
-    // Error state
-    error,
-    
-    // Actions
-    handleEmployeeSubmit,
-    openEmployeeForm,
-    resetFilters,
     refreshEmployees,
+
+    // Sheets & Dialogs
+    isDossierOpen,
+    setIsDossierOpen,
+    isFormSheetOpen,
+    setIsFormSheetOpen,
+    selectedEmployee,
+    openDossier,
+    openCreateForm,
+    openEditForm,
+    handleEmployeeSubmit,
+
+    // Deletion
+    deleteTarget,
+    isDeleteDialogOpen,
+    setIsDeleteDialogOpen,
+    openDeleteDialog,
+    confirmDelete,
+
+    // Export
+    handleExportCsv,
   } = useEmployeesManager();
 
-  /**
-   * Memoized computed values for better performance
-   */
-  const computedValues = useMemo(() => {
-    const hasActiveFilters = Object.values(filters).some(Boolean);
-    const hasSearchQuery = searchQuery.trim().length > 0;
-    const hasFiltersOrSearch = hasActiveFilters || hasSearchQuery;
-    const showEmptyState = !loading && employees.length === 0;
-    
-    return {
-      hasActiveFilters,
-      hasSearchQuery,
-      hasFiltersOrSearch,
-      showEmptyState,
-    };
-  }, [filters, searchQuery, loading, employees.length]);
-
-  /**
-   * Placeholder handlers for future features
-   */
-  const handleExportEmployees = () => {
-    // TODO: Implement employee data export
-    console.log('Export employees functionality to be implemented');
-  };
-
-  const handleImportEmployees = () => {
-    // TODO: Implement employee data import
-    console.log('Import employees functionality to be implemented');
-  };
-
-  /**
-   * Handles opening the filter dialog
-   */
-  const handleOpenFilter = () => {
-    setIsFilterDialogOpen(true);
-  };
-
-  /**
-   * Main content rendering based on current state
-   */
-  const renderMainContent = () => {
-    // Error state
-    if (error && !loading) {
-      return (
-        <ErrorState 
-          error={error} 
-          onRetry={refreshEmployees} 
-        />
-      );
-    }
-
-    // Loading state
-    if (loading) {
-      return <LoadingState message="Loading employees..." />;
-    }
-
-    // Empty state
-    if (computedValues.showEmptyState) {
-      return (
-        <EmptyState
-          hasFilters={computedValues.hasFiltersOrSearch}
-          onAddEmployee={() => openEmployeeForm()}
-          onResetFilters={resetFilters}
-        />
-      );
-    }
-
-    // Employee table
+  const isFiltered = useMemo(() => {
     return (
-      <EmployeeTable 
-        employees={employees}
-        totalEmployees={totalEmployees}
-        pagination={pagination}
-        setPagination={setPagination}
-        onEdit={openEmployeeForm}
-        loading={loading}
-      />
+      Boolean(searchQuery.trim()) ||
+      Boolean(filters.department) ||
+      Boolean(filters.position) ||
+      Boolean(filters.status) ||
+      Boolean(filters.leader)
     );
-  };
+  }, [searchQuery, filters]);
 
   return (
     <PermissionGuard module="employees_management">
-      <div className="container mx-auto px-4 py-8 space-y-6">
-        {/* Page Top Header with Breadcrumbs & Clock */}
+      <div className="space-y-6">
+        {/* Top Header with Breadcrumbs & Clock */}
         <PageHeader />
 
-        {/* Dashboard Statistics */}
-        <DashboardStats />
+        {/* Page Title & Primary Actions */}
+        <EmployeeManagementHeader
+          onAddEmployee={openCreateForm}
+          onExportCsv={handleExportCsv}
+          isExporting={isExporting}
+          totalEmployees={totalEmployees}
+        />
 
-        {/* Main Employee Management Card */}
-        <Card>
-          <CardHeader className="pb-4">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <div>
-                <CardTitle className="text-2xl font-bold">
-                  Employee Management
-                </CardTitle>
-                <p className="text-muted-foreground mt-1">
-                  Manage your organization&apos;s employees and their information
-                </p>
-              </div>
-              
-              {/* Header Actions */}
-              <EmployeeActions
-                onAddEmployee={() => openEmployeeForm()}
-                onExportEmployees={handleExportEmployees}
-                onImportEmployees={handleImportEmployees}
-                loading={loading}
-                totalEmployees={totalEmployees}
-              />
-            </div>
-          </CardHeader>
+        {/* KPI Metric Strip with Interactive Click-to-Filter */}
+        <EmployeeStatsCards
+          stats={stats}
+          loading={loadingStats}
+          activeStatusFilter={filters.status}
+          onStatusFilterChange={handleStatusFilterChange}
+        />
 
-          <CardContent className="space-y-6">
-            {/* Search and Filter Controls */}
-            <SearchAndFilterControls
+        {/* Main Employee Workspace Card */}
+        <Card className="border-border/80 shadow-xs">
+          <CardContent className="p-4 sm:p-5 space-y-4">
+            {/* Inline Faceted Filter Bar */}
+            <EmployeeFilterBar
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               filters={filters}
-              onOpenFilter={handleOpenFilter}
+              onFilterChange={setFilters}
               onResetFilters={resetFilters}
               onRefresh={refreshEmployees}
+              departments={departments}
+              positions={positions}
               loading={loading}
+              totalEmployees={totalEmployees}
             />
 
-            {/* Main Content */}
-            {renderMainContent()}
+            {/* Table or States */}
+            {error && !loading ? (
+              <ErrorState error={error} onRetry={refreshEmployees} />
+            ) : loading ? (
+              <LoadingState />
+            ) : employees.length === 0 ? (
+              <EmptyState
+                hasFilters={isFiltered}
+                onAddEmployee={openCreateForm}
+                onResetFilters={resetFilters}
+              />
+            ) : (
+              <EmployeeTable
+                employees={employees}
+                totalEmployees={totalEmployees}
+                pagination={pagination}
+                setPagination={setPagination}
+                onView={openDossier}
+                onEdit={openEditForm}
+                onDelete={openDeleteDialog}
+                loading={loading}
+              />
+            )}
           </CardContent>
         </Card>
 
-        {/* Employee Form Dialog */}
-        <EmployeeFormDialog
-          open={isFormDialogOpen}
-          onOpenChange={setIsFormDialogOpen}
-          employee={currentEmployee}
+        {/* Slide-over Sheet: Read-Only Dossier */}
+        <EmployeeDossierSheet
+          open={isDossierOpen}
+          onOpenChange={setIsDossierOpen}
+          employee={selectedEmployee}
+          onEdit={openEditForm}
+          onDelete={openDeleteDialog}
+        />
+
+        {/* Slide-over Sheet: Create / Edit Form */}
+        <EmployeeFormSheet
+          open={isFormSheetOpen}
+          onOpenChange={setIsFormSheetOpen}
+          employee={selectedEmployee}
           departments={departments}
           positions={positions}
           leaders={leaders}
           onSubmit={handleEmployeeSubmit}
-          isLoadingOptions={loadingMetadata}
           isSubmitting={submitting}
         />
 
-        {/* Filter Dialog */}
-        <FilterDialog
-          open={isFilterDialogOpen}
-          onOpenChange={setIsFilterDialogOpen}
-          departments={departments}
-          positions={positions}
-          leaders={leaders}
-          filters={filters}
-          setFilters={setFilters}
-          loading={loadingMetadata}
+        {/* Standard Deletion Confirmation Dialog */}
+        <DeleteConfirmationDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          onConfirm={confirmDelete}
+          onConfirmDelete={confirmDelete}
+          loading={isDeleting}
+          itemName={deleteTarget?.name}
+          itemType="employee"
+          consequences={[
+            "RFID hardware credentials will be immediately unassigned.",
+            "The employee will no longer be able to punch at RFID kiosk terminals.",
+            "Existing attendance logs will remain preserved in historical records.",
+          ]}
         />
       </div>
     </PermissionGuard>

@@ -7,18 +7,21 @@ export async function GET() {
   if (error) return error;
 
   try {
+    const totalQuery = `SELECT COUNT(*) AS total FROM employees`;
     const activeQuery = `SELECT COUNT(*) AS total FROM employees WHERE status = 'active'`;
     const inactiveQuery = `SELECT COUNT(*) AS total FROM employees WHERE status = 'inactive'`;
     const resignedQuery = `SELECT COUNT(*) AS total FROM employees WHERE status = 'resigned'`;
 
+    const [totalResult] = await executeQuery({ query: totalQuery });
     const [activeResult] = await executeQuery({ query: activeQuery });
     const [inactiveResult] = await executeQuery({ query: inactiveQuery });
     const [resignedResult] = await executeQuery({ query: resignedQuery });
 
     return NextResponse.json({
-      active: activeResult.total,
-      inactive: inactiveResult.total,
-      resigned: resignedResult.total,
+      total: totalResult?.total || 0,
+      active: activeResult?.total || 0,
+      inactive: inactiveResult?.total || 0,
+      resigned: resignedResult?.total || 0,
     });
   } catch (error) {
     console.error("Failed to fetch employee stats:", error);

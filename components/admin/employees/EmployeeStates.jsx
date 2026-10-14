@@ -1,111 +1,114 @@
-/**
- * Loading and empty state components for employee management
- * Provides consistent loading and empty state UI
- */
+"use client";
 
-import React, { memo } from 'react';
-import { RefreshCw, Users, UserPlus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import React, { memo } from "react";
+import { Users, UserPlus, RefreshCw, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 /**
  * LoadingState Component
- * @param {Object} props - Component props
- * @param {string} props.message - Loading message
  */
-export const LoadingState = memo(({ message = 'Loading employees...' }) => (
-  <div className="flex flex-col items-center justify-center py-12 space-y-4">
-    <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
-    <p className="text-muted-foreground" aria-live="polite">
-      {message}
-    </p>
-  </div>
-));
-
-LoadingState.displayName = 'LoadingState';
+export const LoadingState = memo(function LoadingState({
+  message = "Loading personnel roster...",
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 space-y-3">
+      <RefreshCw className="size-6 animate-spin text-muted-foreground/80" />
+      <p className="text-xs text-muted-foreground font-medium" aria-live="polite">
+        {message}
+      </p>
+    </div>
+  );
+});
 
 /**
  * EmptyState Component
- * @param {Object} props - Component props
- * @param {Function} props.onAddEmployee - Handler for adding first employee
- * @param {boolean} props.hasFilters - Whether filters are applied
- * @param {Function} props.onResetFilters - Handler to reset filters
  */
-export const EmptyState = memo(({ 
-  onAddEmployee, 
-  hasFilters = false, 
-  onResetFilters 
-}) => (
-  <Card className="border-dashed">
-    <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
-      <div className="rounded-full bg-muted p-4">
-        <Users className="h-8 w-8 text-muted-foreground" />
-      </div>
-      
-      <div className="text-center space-y-2">
-        <h3 className="text-lg font-semibold">
-          {hasFilters ? 'No employees found' : 'No employees yet'}
-        </h3>
-        <p className="text-muted-foreground max-w-md">
-          {hasFilters 
-            ? 'No employees match your current search criteria. Try adjusting your filters or search terms.'
-            : 'Get started by adding your first employee to the system.'
-          }
-        </p>
+export const EmptyState = memo(function EmptyState({
+  hasFilters = false,
+  onAddEmployee,
+  onResetFilters,
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-4 text-center rounded-lg border border-dashed border-border/80 bg-muted/10">
+      <div className="rounded-full bg-muted p-3 mb-3 border border-border/60">
+        <Users className="size-5 text-muted-foreground" />
       </div>
 
-      <div className="flex gap-2">
+      <h3 className="text-sm font-semibold text-foreground">
+        {hasFilters ? "No matching employees found" : "No employees registered yet"}
+      </h3>
+      <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-4">
+        {hasFilters
+          ? "No personnel match your search or filter criteria. Try adjusting your query or resetting all filters."
+          : "Get started by registering your first employee and assigning their RFID badge credential."}
+      </p>
+
+      <div className="flex items-center gap-2">
         {hasFilters ? (
           <>
-            <Button variant="outline" onClick={onResetFilters}>
-              Clear filters
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onResetFilters}
+              className="h-8 text-xs border-border"
+            >
+              Clear Filters
             </Button>
-            <Button onClick={onAddEmployee}>
-              <UserPlus className="mr-2 h-4 w-4" />
+            <Button
+              size="sm"
+              onClick={onAddEmployee}
+              className="h-8 text-xs gap-1.5"
+            >
+              <UserPlus className="size-3.5" />
               Add Employee
             </Button>
           </>
         ) : (
-          <Button onClick={onAddEmployee}>
-            <UserPlus className="mr-2 h-4 w-4" />
+          <Button
+            size="sm"
+            onClick={onAddEmployee}
+            className="h-8 text-xs gap-1.5"
+          >
+            <UserPlus className="size-3.5" />
             Add First Employee
           </Button>
         )}
       </div>
-    </CardContent>
-  </Card>
-));
-
-EmptyState.displayName = 'EmptyState';
+    </div>
+  );
+});
 
 /**
  * ErrorState Component
- * @param {Object} props - Component props
- * @param {string} props.error - Error message
- * @param {Function} props.onRetry - Handler to retry the operation
  */
-export const ErrorState = memo(({ error, onRetry }) => (
-  <Card className="border-destructive">
-    <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
-      <div className="rounded-full bg-destructive/10 p-4">
-        <RefreshCw className="h-8 w-8 text-destructive" />
-      </div>
-      
-      <div className="text-center space-y-2">
-        <h3 className="text-lg font-semibold text-destructive">
-          Failed to load employees
-        </h3>
-        <p className="text-muted-foreground max-w-md">
-          {error || 'An error occurred while loading employee data. Please try again.'}
-        </p>
+export const ErrorState = memo(function ErrorState({
+  error = "Failed to load employee records",
+  onRetry,
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-14 px-4 text-center rounded-lg border border-destructive/30 bg-destructive/5">
+      <div className="rounded-full bg-destructive/10 p-2.5 mb-2.5">
+        <AlertCircle className="size-5 text-destructive" />
       </div>
 
-      <Button onClick={onRetry} variant="outline">
-        <RefreshCw className="mr-2 h-4 w-4" />
-        Try Again
-      </Button>
-    </CardContent>
-  </Card>
-));
+      <h3 className="text-sm font-semibold text-destructive">
+        Unable to load employee roster
+      </h3>
+      <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-4">
+        {error}
+      </p>
 
-ErrorState.displayName = 'ErrorState';
+      {onRetry && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRetry}
+          className="h-8 text-xs border-destructive/40 text-destructive hover:bg-destructive/10"
+        >
+          <RefreshCw className="size-3.5 mr-1.5" />
+          Retry Connection
+        </Button>
+      )}
+    </div>
+  );
+});
