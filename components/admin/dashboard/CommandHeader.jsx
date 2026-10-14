@@ -1,19 +1,17 @@
 "use client";
 
-import { useMemo } from "react";
+import { useSyncExternalStore } from "react";
 import dayjs from "dayjs";
 import { motion } from "framer-motion";
-import { 
-  Play, 
-  Pause, 
-  RotateCw, 
-  ExternalLink, 
-  ShieldCheck, 
-  Radio
+import {
+  Play,
+  Pause,
+  RotateCw,
+  ShieldCheck,
+  Radio,
 } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 
 /**
  * Format user role for display
@@ -32,15 +30,31 @@ function formatRole(userRole) {
 }
 
 /**
- * Get greeting based on current time
- * @returns {string} Greeting
+ * Client and server snapshot resolvers for greeting
  */
-function getGreeting() {
+function getClientGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
 }
+
+function getServerGreeting() {
+  return "Welcome";
+}
+
+/**
+ * Client and server snapshot resolvers for date display
+ */
+function getClientDate() {
+  return dayjs().format("dddd, MMMM D, YYYY");
+}
+
+function getServerDate() {
+  return "";
+}
+
+const emptySubscribe = () => () => {};
 
 export default function CommandHeader({
   session,
@@ -54,7 +68,18 @@ export default function CommandHeader({
 }) {
   const userName = session?.user?.name?.split(" ")[0] || "Administrator";
   const userRole = formatRole(session?.user?.role);
-  const greeting = useMemo(() => getGreeting(), []);
+
+  const greeting = useSyncExternalStore(
+    emptySubscribe,
+    getClientGreeting,
+    getServerGreeting
+  );
+
+  const currentDate = useSyncExternalStore(
+    emptySubscribe,
+    getClientDate,
+    getServerDate
+  );
 
   return (
     <motion.header
@@ -70,7 +95,10 @@ export default function CommandHeader({
         </div>
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+            <h1
+              suppressHydrationWarning
+              className="text-xl sm:text-2xl font-bold tracking-tight text-foreground"
+            >
               {greeting}, {userName}
             </h1>
             <Badge variant="secondary" className="font-semibold text-xs py-0.5 px-2">
@@ -78,7 +106,11 @@ export default function CommandHeader({
             </Badge>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-            <span>{dayjs().format("dddd, MMMM D, YYYY")}</span>
+            {currentDate ? (
+              <span suppressHydrationWarning>{currentDate}</span>
+            ) : (
+              <span className="inline-block h-3.5 w-36 rounded bg-muted/60 animate-pulse" />
+            )}
             <span>•</span>
             <span className="flex items-center gap-1.5 font-medium">
               <span
