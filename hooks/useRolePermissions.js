@@ -1,20 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 
 export function useRolePermissions() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [permissions, setPermissions] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(true);
+
+  const userRole = session?.user?.role;
+  const loading = (status === 'loading' && !session) || (isFetching && !permissions);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchUserPermissions = async () => {
+      if (!userRole) {
+        if (isMounted) {
+          setIsFetching(false);
+        }
+        return;
+      }
+
       try {
-        setLoading(true);
         const res = await fetch('/api/admin/role-permissions');
-        if (res.ok) {
+        if (res.ok && isMounted) {
           const data = await res.json();
-          const userPermissions = data.permissions.filter(
-            p => p.role === session.user.role
+          const userPermissions = (data.permissions || []).filter(
+            p => p.role === userRole
           );
           
           // Convert array to object for easier access
@@ -31,24 +42,29 @@ export function useRolePermissions() {
       } catch (error) {
         console.error('Error fetching user permissions:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setIsFetching(false);
+        }
       }
     };
 
-    if (session?.user?.role) {
+    if (status !== 'loading') {
       fetchUserPermissions();
     }
-  }, [session]);
 
-  const refetchPermissions = async () => {
-    if (session?.user?.role) {
+    return () => {
+      isMounted = false;
+    };
+  }, [userRole, status]);
+
+  const refetchPermissions = useCallback(async () => {
+    if (userRole) {
       try {
-        setLoading(true);
         const res = await fetch('/api/admin/role-permissions');
         if (res.ok) {
           const data = await res.json();
-          const userPermissions = data.permissions.filter(
-            p => p.role === session.user.role
+          const userPermissions = (data.permissions || []).filter(
+            p => p.role === userRole
           );
           
           // Convert array to object for easier access
@@ -64,11 +80,9 @@ export function useRolePermissions() {
         }
       } catch (error) {
         console.error('Error fetching user permissions:', error);
-      } finally {
-        setLoading(false);
       }
     }
-  };
+  }, [userRole]);
 
   const hasPermission = (module, action) => {
     if (!permissions || !permissions[module]) return false;

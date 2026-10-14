@@ -5,7 +5,7 @@ import { ROLES, MODULES, PROTECTED_PERMISSIONS, RECOMMENDED_BASELINE } from "./c
  * @param {string} role - Role key
  * @returns {Object|undefined}
  */
-export const getRoleInfo = (role) => {
+const getRoleInfo = (role) => {
   return ROLES.find((r) => r.value === role);
 };
 
@@ -14,7 +14,7 @@ export const getRoleInfo = (role) => {
  * @param {string} moduleName - Module key
  * @returns {Object|undefined}
  */
-export const getModuleInfo = (moduleName) => {
+const getModuleInfo = (moduleName) => {
   return MODULES.find((m) => m.value === moduleName);
 };
 

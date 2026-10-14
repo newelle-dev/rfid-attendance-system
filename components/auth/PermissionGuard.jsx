@@ -11,9 +11,11 @@ export default function PermissionGuard({ module, children, fallbackPath = '/adm
   const { permissions, loading } = useRolePermissions();
   const router = useRouter();
 
+  const isInitialLoading = (status === 'loading' && !session) || (loading && !permissions);
+
   useEffect(() => {
-    // Don't check permissions while loading
-    if (status === 'loading' || loading) return;
+    // Don't check permissions while initial loading is in progress
+    if (isInitialLoading) return;
 
     // Redirect if not authenticated
     if (!session) {
@@ -24,7 +26,7 @@ export default function PermissionGuard({ module, children, fallbackPath = '/adm
     // Check if user has permission for this module
     if (permissions && module) {
       // Special case: if allowSuperadminOverride is true and user is superadmin, skip permission check
-      if (allowSuperadminOverride && session.user.role === 'superadmin') {
+      if (allowSuperadminOverride && session.user?.role === 'superadmin') {
         return;
       }
       
@@ -35,10 +37,10 @@ export default function PermissionGuard({ module, children, fallbackPath = '/adm
         return;
       }
     }
-  }, [session, status, permissions, loading, module, router, fallbackPath, allowSuperadminOverride]);
+  }, [session, status, permissions, isInitialLoading, module, router, fallbackPath, allowSuperadminOverride]);
 
-  // Show loading while checking permissions
-  if (status === 'loading' || loading) {
+  // Show loading while checking permissions only during initial fetch
+  if (isInitialLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <LoadingSpinner size="lg" />

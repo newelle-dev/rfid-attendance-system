@@ -71,7 +71,7 @@ export default function SideNav({ className }) {
   const { permissions, loading: permissionsLoading } = useRolePermissions();
   const { state, isMobile } = useSidebar();
   const isCollapsed = state === "collapsed" && !isMobile;
-  const isLoading = status === "loading" || permissionsLoading;
+  const isLoading = (status === "loading" && !session) || (permissionsLoading && !permissions);
 
   // Build navigation items based on permissions
   const navItems = React.useMemo(() => {

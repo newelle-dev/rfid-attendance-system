@@ -6,7 +6,7 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 export default function AdminLayout({ children }) {
   return (
     <ErrorBoundary>
-      <SessionProvider>
+      <SessionProvider refetchOnWindowFocus={false} refetchInterval={0}>
         {children}
       </SessionProvider>
     </ErrorBoundary>
