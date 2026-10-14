@@ -1,6 +1,5 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,19 +8,14 @@ import { FormError } from '@/components/ui/FormError';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { AUTH_CONSTANTS } from '@/constants/auth';
-
-// Form validation schema
-const formSchema = z.object({
-  identifier: z.string().min(1, 'Username or Ashima ID is required'),
-  password: z.string().min(1, 'Password is required'),
-});
+import { loginSchema } from '@/lib/validations/auth';
 
 export function LoginForm({ onSubmit, isLoading }) {
   const [formError, setFormError] = useState(null);
   
   // Set up form with validation
   const form = useForm({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       identifier: '',
       password: '',
@@ -30,9 +24,8 @@ export function LoginForm({ onSubmit, isLoading }) {
 
   // Focus identifier field on load
   useEffect(() => {
-    const identifierInput = document.getElementById('identifier');
-    if (identifierInput) identifierInput.focus();
-  }, []);
+    form.setFocus('identifier');
+  }, [form]);
   
   // Handle form submission
   const handleSubmit = async (data) => {
@@ -66,7 +59,6 @@ export function LoginForm({ onSubmit, isLoading }) {
                   autoComplete="username"
                   {...field}
                   aria-required="true"
-                  className={form.formState.errors.identifier ? "border-red-300" : ""}
                   data-testid="login-username"
                 />
               </FormControl>

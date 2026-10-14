@@ -1,15 +1,8 @@
 import { executeQuery } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth";
-import { z } from "zod";
+import { departmentSchema } from "@/lib/validations/lists";
 
-const createDepartmentSchema = z.object({
-  name: z
-    .string({ required_error: "Department name is required" })
-    .trim()
-    .min(1, "Department name is required and cannot be empty")
-    .max(255, "Department name cannot exceed 255 characters"),
-});
 
 // Get all departments with optional pagination, search, and assigned employee headcounts
 export async function GET(request) {
@@ -106,7 +99,7 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    const parsed = createDepartmentSchema.safeParse(body);
+    const parsed = departmentSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(

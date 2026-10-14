@@ -33,6 +33,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ACCOUNT_ROLES, getRoleMeta } from "@/constants/accountConstants";
+import { createAccountSchema, updateAccountSchema } from "@/lib/validations/accounts";
+
 
 /**
  * AccountFormDialog Component
@@ -165,41 +167,40 @@ export default function AccountFormDialog({
     setErrors((prev) => ({ ...prev, employeeId: null, name: null }));
   };
 
-  // Validate form before submission
+  // Validate form before submission using shared Zod schemas
   const validate = () => {
-    const newErrors = {};
+    const dataToValidate = isEditing
+      ? {
+          name: name.trim(),
+          role,
+          employeeId: employeeId.trim(),
+          password: changePassword ? password : "",
+        }
+      : {
+          name: name.trim(),
+          username: username.trim(),
+          employeeId: employeeId.trim(),
+          password,
+          role,
+        };
 
-    if (!name.trim() || name.trim().length < 2) {
-      newErrors.name = "Full name must be at least 2 characters.";
+    const schema = isEditing ? updateAccountSchema : createAccountSchema;
+    const parsed = schema.safeParse(dataToValidate);
+
+    if (!parsed.success) {
+      const fieldErrors = {};
+      parsed.error.issues.forEach((issue) => {
+        const fieldName = issue.path[0];
+        if (fieldName && !fieldErrors[fieldName]) {
+          fieldErrors[fieldName] = issue.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return false;
     }
 
-    if (!isEditing) {
-      if (!username.trim() || username.trim().length < 3) {
-        newErrors.username = "Username must be at least 3 characters.";
-      } else if (!/^[a-zA-Z0-9._-]+$/.test(username.trim())) {
-        newErrors.username = "Only letters, numbers, dots, and hyphens are permitted.";
-      }
-
-      if (!employeeId.trim()) {
-        newErrors.employeeId = "Ashima ID is required.";
-      }
-
-      if (!password || password.length < 8) {
-        newErrors.password = "Password must be at least 8 characters.";
-      }
-    } else {
-      // Edit mode password validation if enabled
-      if (changePassword && (!password || password.length < 8)) {
-        newErrors.password = "New password must be at least 8 characters.";
-      }
-    }
-
-    if (!role) {
-      newErrors.role = "Please select an access role.";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors({});
+    return true;
   };
 
   // Handle form submission

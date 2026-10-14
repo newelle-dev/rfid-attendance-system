@@ -1,16 +1,7 @@
 import { executeQuery } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth";
-import { z } from "zod";
-
-const updatePositionSchema = z.object({
-  name: z
-    .string({ required_error: "Position name is required" })
-    .trim()
-    .min(1, "Position name is required and cannot be empty")
-    .max(255, "Position name cannot exceed 255 characters"),
-  is_leader: z.union([z.boolean(), z.number()]).optional().default(false),
-});
+import { positionSchema } from "@/lib/validations/lists";
 
 // Get a specific position
 export async function GET(request, context) {
@@ -67,7 +58,7 @@ export async function PUT(request, context) {
   try {
     const { id } = await context.params;
     const body = await request.json();
-    const parsed = updatePositionSchema.safeParse(body);
+    const parsed = positionSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(

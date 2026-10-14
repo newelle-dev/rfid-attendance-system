@@ -1,41 +1,41 @@
 import { NextResponse } from "next/server";
 import { executeQuery } from "@/lib/db";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireAdminSession } from "@/lib/auth";
+import { profileSchema } from "@/lib/validations/auth";
 
 export async function PUT(request) {
-  const session = await getServerSession(authOptions);
-  
-  // Check authentication
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-  }
+  const { error, user } = await requireAdminSession();
+  if (error) return error;
 
   try {
-    const { name, username, employeeId } = await request.json();
-    
-    // Validate required fields
-    if (!name || !username || !employeeId) {
+    const body = await request.json();
+    const parsed = profileSchema.safeParse(body);
+
+    if (!parsed.success) {
+      const firstError = parsed.error.issues?.[0]?.message || "Validation failed";
       return NextResponse.json(
-        { error: 'All fields are required' },
+        { error: firstError, details: parsed.error.format() },
         { status: 400 }
       );
     }
+
+    const { name, username, employeeId } = parsed.data;
 
     // Check if username is already taken by another user
     const checkUsernameQuery = `
       SELECT id FROM admin_users 
       WHERE username = ? AND id != ?
+      LIMIT 1
     `;
     
     const usernameExists = await executeQuery({
       query: checkUsernameQuery,
-      values: [username, session.user.id]
+      values: [username, user.id],
     });
 
     if (usernameExists.length > 0) {
       return NextResponse.json(
-        { error: 'Username is already taken' },
+        { error: `The username '${username}' is already taken.` },
         { status: 409 }
       );
     }
@@ -44,16 +44,17 @@ export async function PUT(request) {
     const checkEmployeeIdQuery = `
       SELECT id FROM admin_users 
       WHERE employee_id = ? AND id != ?
+      LIMIT 1
     `;
     
     const employeeIdExists = await executeQuery({
       query: checkEmployeeIdQuery,
-      values: [employeeId, session.user.id]
+      values: [employeeId, user.id],
     });
 
     if (employeeIdExists.length > 0) {
       return NextResponse.json(
-        { error: 'Employee ID is already taken' },
+        { error: `The Employee ID '${employeeId}' is already assigned to another account.` },
         { status: 409 }
       );
     }
@@ -67,18 +68,18 @@ export async function PUT(request) {
 
     await executeQuery({
       query: updateQuery,
-      values: [name, username, employeeId, session.user.id]
+      values: [name, username, employeeId, user.id],
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Profile updated successfully'
+      message: "Profile updated successfully",
     });
   } catch (error) {
-    console.error('Error updating profile:', error);
+    console.error("Error updating profile:", error);
     return NextResponse.json(
-      { error: 'Failed to update profile' },
+      { error: "Failed to update profile" },
       { status: 500 }
     );
   }
-}
+}

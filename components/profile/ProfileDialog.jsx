@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
+import { profileSchema, passwordChangeSchema } from "@/lib/validations/auth";
 
 import {
   Dialog,
@@ -32,23 +32,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-// Schema for profile details
-const profileFormSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
-  username: z.string().min(3, "Username must be at least 3 characters."),
-  employeeId: z.string().min(1, "Employee ID is required."),
-});
-
-// Schema for password change
-const passwordFormSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required."),
-  newPassword: z.string().min(8, "Password must be at least 8 characters."),
-  confirmPassword: z.string().min(8, "Password must be at least 8 characters."),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords do not match.",
-  path: ["confirmPassword"],
-});
-
 export default function ProfileDialog({ open, onOpenChange }) {
   const { data: session, update } = useSession();
   const [isLoading, setIsLoading] = useState(false);
@@ -56,17 +39,28 @@ export default function ProfileDialog({ open, onOpenChange }) {
 
   // Profile form
   const profileForm = useForm({
-    resolver: zodResolver(profileFormSchema),
+    resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: session?.user?.name || "",
-      username: session?.user?.username || "",
-      employeeId: session?.user?.employeeId || "",
+      name: "",
+      username: "",
+      employeeId: "",
     },
   });
 
+  // Synchronize form default values whenever dialog opens or session updates
+  useEffect(() => {
+    if (open && session?.user) {
+      profileForm.reset({
+        name: session.user.name || "",
+        username: session.user.username || "",
+        employeeId: session.user.employeeId || "",
+      });
+    }
+  }, [open, session, profileForm]);
+
   // Password form
   const passwordForm = useForm({
-    resolver: zodResolver(passwordFormSchema),
+    resolver: zodResolver(passwordChangeSchema),
     defaultValues: {
       currentPassword: "",
       newPassword: "",
@@ -279,7 +273,7 @@ export default function ProfileDialog({ open, onOpenChange }) {
                 />
 
                 <DialogFooter>
-                  <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
+                  <Button type="submit" disabled={isLoading}>
                     {isLoading ? "Changing Password..." : "Change Password"}
                   </Button>
                 </DialogFooter>

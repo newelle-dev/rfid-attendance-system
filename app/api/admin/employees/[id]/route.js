@@ -1,11 +1,12 @@
 import { executeQuery } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth";
+import { employeeSchema } from "@/lib/validations/employees";
+import { z } from "zod";
 
 // Helper function to decode Base64 to binary with better error handling
 function decodeBase64ToBinary(base64String) {
   if (!base64String || typeof base64String !== "string") {
-    console.log("Invalid or missing base64String");
     return null;
   }
   try {
@@ -25,28 +26,59 @@ export async function PUT(req, context) {
   if (error) return error;
 
   try {
-    const { id } = await context.params; // 👈 Add await here
+    const { id: rawId } = await context.params;
+    const idParsed = z.coerce.number().int().positive().safeParse(rawId);
+    if (!idParsed.success) {
+      return NextResponse.json(
+        { message: "A valid numeric Employee ID is required" },
+        { status: 400 }
+      );
+    }
+    const id = idParsed.data;
+
     const body = await req.json();
+    const parsed = employeeSchema.safeParse(body);
+
+    if (!parsed.success) {
+      const firstError = parsed.error.issues?.[0]?.message || "Validation failed";
+      return NextResponse.json(
+        { message: firstError, details: parsed.error.format() },
+        { status: 400 }
+      );
+    }
 
     const {
       ashima_id,
       name,
       department_id,
       position_id,
-      leader, // <-- use leader instead of supervisor_id
+      leader,
       rfid_tag,
       photo,
       emp_stat,
       status,
-      removePhoto
-    } = body;
+      removePhoto,
+    } = parsed.data;
 
-    // Validate required fields
-    if (!ashima_id || !name) {
-      return NextResponse.json(
-        { message: "Ashima ID and Name are required" },
-        { status: 400 }
-      );
+    // Check for duplicate ashima_id or rfid_tag assigned to another employee
+    const duplicate = await executeQuery({
+      query: `SELECT id, ashima_id, rfid_tag FROM employees WHERE (ashima_id = ? OR (? IS NOT NULL AND rfid_tag = ?)) AND id != ? LIMIT 1`,
+      values: [ashima_id, rfid_tag, rfid_tag, id],
+    });
+
+    if (duplicate.length > 0) {
+      if (duplicate[0].ashima_id === ashima_id) {
+        return NextResponse.json(
+          { message: `Employee ID '${ashima_id}' is already registered to another employee.` },
+          { status: 409 }
+        );
+      }
+      if (rfid_tag && duplicate[0].rfid_tag === rfid_tag) {
+        return NextResponse.json(
+          { message: `RFID tag '${rfid_tag}' is already assigned to another employee.` },
+          { status: 409 }
+        );
+      }
     }
 
     let binaryPhoto = null;
@@ -66,12 +98,12 @@ export async function PUT(req, context) {
     values.push(name);
 
     updateFields.push("department_id = ?");
-    values.push(department_id);
+    values.push(department_id || null);
 
     updateFields.push("position_id = ?");
-    values.push(position_id);
+    values.push(position_id || null);
 
-    updateFields.push("leader = ?"); // <-- use leader
+    updateFields.push("leader = ?");
     values.push(leader || null);
 
     updateFields.push("rfid_tag = ?");
@@ -109,7 +141,7 @@ export async function PUT(req, context) {
       message: "Employee updated successfully",
       employeeId: id,
       status: status,
-      photoRemoved: status === "resigned" || removePhoto
+      photoRemoved: status === "resigned" || removePhoto,
     });
   } catch (err) {
     console.error("Failed to update employee:", err);
@@ -126,13 +158,16 @@ export async function DELETE(req, context) {
   if (error) return error;
 
   try {
-    const { id } = await context.params;
-    if (!id) {
+    const { id: rawId } = await context.params;
+    const idParsed = z.coerce.number().int().positive().safeParse(rawId);
+    if (!idParsed.success) {
       return NextResponse.json(
-        { message: "Employee ID is required" },
+        { message: "A valid numeric Employee ID is required" },
         { status: 400 }
       );
     }
+
+    const id = idParsed.data;
 
     const query = `DELETE FROM employees WHERE id = ?`;
     await executeQuery({ query, values: [id] });

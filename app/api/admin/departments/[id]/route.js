@@ -1,15 +1,7 @@
 import { executeQuery } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth";
-import { z } from "zod";
-
-const updateDepartmentSchema = z.object({
-  name: z
-    .string({ required_error: "Department name is required" })
-    .trim()
-    .min(1, "Department name is required and cannot be empty")
-    .max(255, "Department name cannot exceed 255 characters"),
-});
+import { departmentSchema } from "@/lib/validations/lists";
 
 // Get a specific department
 export async function GET(request, context) {
@@ -64,7 +56,7 @@ export async function PUT(request, context) {
   try {
     const { id } = await context.params;
     const body = await request.json();
-    const parsed = updateDepartmentSchema.safeParse(body);
+    const parsed = departmentSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(

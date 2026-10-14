@@ -2,22 +2,8 @@ import { NextResponse } from "next/server";
 import { executeQuery } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { requireAdminSession } from "@/lib/auth";
-import { z } from "zod";
+import { createAccountSchema } from "@/lib/validations/accounts";
 
-const createAccountSchema = z.object({
-  name: z.string().trim().min(2, "Full name must be at least 2 characters"),
-  username: z
-    .string()
-    .trim()
-    .min(3, "Username must be at least 3 characters")
-    .max(50, "Username cannot exceed 50 characters")
-    .regex(/^[a-zA-Z0-9._-]+$/, "Username can only contain alphanumeric characters, dots, underscores, and hyphens"),
-  employeeId: z.string().trim().min(1, "Ashima ID is required"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  role: z.enum(["superadmin", "admin", "security", "hr"], {
-    errorMap: () => ({ message: "Valid role is required (superadmin, admin, security, hr)" }),
-  }),
-});
 
 /**
  * GET: List all admin accounts with faceted filtering, search, and pagination

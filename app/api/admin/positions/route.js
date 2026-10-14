@@ -1,16 +1,8 @@
 import { executeQuery } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth";
-import { z } from "zod";
+import { positionSchema } from "@/lib/validations/lists";
 
-const createPositionSchema = z.object({
-  name: z
-    .string({ required_error: "Position name is required" })
-    .trim()
-    .min(1, "Position name is required and cannot be empty")
-    .max(255, "Position name cannot exceed 255 characters"),
-  is_leader: z.union([z.boolean(), z.number()]).optional().default(false),
-});
 
 // Get all positions with optional pagination, search, leader filter, and employee headcounts
 export async function GET(request) {
@@ -101,7 +93,7 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    const parsed = createPositionSchema.safeParse(body);
+    const parsed = positionSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(

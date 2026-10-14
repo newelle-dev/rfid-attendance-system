@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo, useState, useEffect } from "react";
+import React, { memo, useState, useEffect, useMemo } from "react";
 import {
   Sheet,
   SheetContent,
@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { employeeSchema } from "@/lib/validations/employees";
 
 /**
  * EmployeeFormSheet Component
@@ -140,21 +141,39 @@ const EmployeeFormSheet = memo(function EmployeeFormSheet({
   };
 
   const validate = () => {
-    const newErrors = {};
-    if (!formData.ashima_id?.trim()) {
-      newErrors.ashima_id = "Employee ID is required";
+    const dataToValidate = {
+      ...formData,
+      department_id: formData.department_id ? Number(formData.department_id) : null,
+      position_id: formData.position_id ? Number(formData.position_id) : null,
+      leader: formData.leader ? Number(formData.leader) : null,
+      rfid_tag: formData.status === "resigned" ? null : formData.rfid_tag?.trim() || null,
+      photo: photoPreview,
+      removePhoto: formData.status === "resigned" || !photoPreview,
+    };
+
+    const parsed = employeeSchema.safeParse(dataToValidate);
+
+    if (!parsed.success) {
+      const fieldErrors = {};
+      parsed.error.issues.forEach((issue) => {
+        const fieldName = issue.path[0];
+        if (fieldName && !fieldErrors[fieldName]) {
+          fieldErrors[fieldName] = issue.message;
+        }
+      });
+      setErrors(fieldErrors);
+      const firstErrorMessage = parsed.error.issues[0]?.message || "Please fix the errors in the form";
+      toast.error(firstErrorMessage);
+      return false;
     }
-    if (!formData.name?.trim()) {
-      newErrors.name = "Full name is required";
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+    setErrors({});
+    return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) {
-      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -178,6 +197,58 @@ const EmployeeFormSheet = memo(function EmployeeFormSheet({
   const selectedPosition = positions.find(
     (p) => String(p.id) === String(formData.position_id)
   )?.name;
+
+  // Memoized dropdown item collections for Base UI Select
+  const departmentItems = useMemo(
+    () => [
+      { value: "none", label: "None / Unassigned" },
+      ...departments.map((dept) => ({
+        value: String(dept.id),
+        label: dept.name,
+      })),
+    ],
+    [departments]
+  );
+
+  const positionItems = useMemo(
+    () => [
+      { value: "none", label: "None / Unassigned" },
+      ...positions.map((pos) => ({
+        value: String(pos.id),
+        label: pos.name,
+      })),
+    ],
+    [positions]
+  );
+
+  const leaderItems = useMemo(
+    () => [
+      { value: "none", label: "Direct / None" },
+      ...leaders.map((lead) => ({
+        value: String(lead.id),
+        label: lead.name,
+      })),
+    ],
+    [leaders]
+  );
+
+  const employmentTypeItems = useMemo(
+    () => [
+      { value: "regular", label: "Regular" },
+      { value: "contractual", label: "Contractual" },
+      { value: "probationary", label: "Probationary" },
+    ],
+    []
+  );
+
+  const statusItems = useMemo(
+    () => [
+      { value: "active", label: "Active" },
+      { value: "inactive", label: "Inactive" },
+      { value: "resigned", label: "Resigned" },
+    ],
+    []
+  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -326,6 +397,7 @@ const EmployeeFormSheet = memo(function EmployeeFormSheet({
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium">Department</Label>
                   <Select
+                    items={departmentItems}
                     value={formData.department_id || "none"}
                     onValueChange={(val) =>
                       handleChange("department_id", val === "none" ? "" : val)
@@ -336,10 +408,9 @@ const EmployeeFormSheet = memo(function EmployeeFormSheet({
                       <SelectValue placeholder="Select Department" />
                     </SelectTrigger>
                     <SelectContent className="text-xs">
-                      <SelectItem value="none">None / Unassigned</SelectItem>
-                      {departments.map((dept) => (
-                        <SelectItem key={dept.id} value={String(dept.id)}>
-                          {dept.name}
+                      {departmentItems.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -350,6 +421,7 @@ const EmployeeFormSheet = memo(function EmployeeFormSheet({
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium">Position</Label>
                   <Select
+                    items={positionItems}
                     value={formData.position_id || "none"}
                     onValueChange={(val) =>
                       handleChange("position_id", val === "none" ? "" : val)
@@ -360,10 +432,9 @@ const EmployeeFormSheet = memo(function EmployeeFormSheet({
                       <SelectValue placeholder="Select Position" />
                     </SelectTrigger>
                     <SelectContent className="text-xs">
-                      <SelectItem value="none">None / Unassigned</SelectItem>
-                      {positions.map((pos) => (
-                        <SelectItem key={pos.id} value={String(pos.id)}>
-                          {pos.name}
+                      {positionItems.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -376,6 +447,7 @@ const EmployeeFormSheet = memo(function EmployeeFormSheet({
                 <div className="space-y-1.5 sm:col-span-1">
                   <Label className="text-xs font-medium">Reports To</Label>
                   <Select
+                    items={leaderItems}
                     value={formData.leader || "none"}
                     onValueChange={(val) =>
                       handleChange("leader", val === "none" ? "" : val)
@@ -386,10 +458,9 @@ const EmployeeFormSheet = memo(function EmployeeFormSheet({
                       <SelectValue placeholder="Select Manager" />
                     </SelectTrigger>
                     <SelectContent className="text-xs">
-                      <SelectItem value="none">Direct / None</SelectItem>
-                      {leaders.map((lead) => (
-                        <SelectItem key={lead.id} value={String(lead.id)}>
-                          {lead.name}
+                      {leaderItems.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -400,6 +471,7 @@ const EmployeeFormSheet = memo(function EmployeeFormSheet({
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium">Employment Type</Label>
                   <Select
+                    items={employmentTypeItems}
                     value={formData.emp_stat}
                     onValueChange={(val) => handleChange("emp_stat", val)}
                     disabled={isSubmitting}
@@ -408,9 +480,11 @@ const EmployeeFormSheet = memo(function EmployeeFormSheet({
                       <SelectValue placeholder="Select Type" />
                     </SelectTrigger>
                     <SelectContent className="text-xs">
-                      <SelectItem value="regular">Regular</SelectItem>
-                      <SelectItem value="contractual">Contractual</SelectItem>
-                      <SelectItem value="probationary">Probationary</SelectItem>
+                      {employmentTypeItems.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -419,6 +493,7 @@ const EmployeeFormSheet = memo(function EmployeeFormSheet({
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium">Account Status</Label>
                   <Select
+                    items={statusItems}
                     value={formData.status}
                     onValueChange={(val) => handleChange("status", val)}
                     disabled={isSubmitting}
@@ -427,9 +502,11 @@ const EmployeeFormSheet = memo(function EmployeeFormSheet({
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent className="text-xs">
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="resigned">Resigned</SelectItem>
+                      {statusItems.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

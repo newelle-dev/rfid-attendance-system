@@ -15,6 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ShieldCheck } from "lucide-react";
 
+import { departmentSchema, positionSchema } from "@/lib/validations/lists";
+
 /**
  * DataManagementDialog Component
  * Modern centered modal for adding and updating Departments and Positions.
@@ -51,14 +53,14 @@ export default function DataManagementDialog({
   const handleSubmit = (e) => {
     if (e) e.preventDefault();
 
-    const trimmed = name.trim();
-    if (!trimmed) {
-      setValidationError(`${entityLabel} name cannot be empty`);
-      return;
-    }
+    const schema = isPosition ? positionSchema : departmentSchema;
+    const parsed = schema.safeParse({
+      name: name.trim(),
+      is_leader: isLeader,
+    });
 
-    if (trimmed.length > 255) {
-      setValidationError(`${entityLabel} name cannot exceed 255 characters`);
+    if (!parsed.success) {
+      setValidationError(parsed.error.issues[0]?.message || "Validation failed");
       return;
     }
 
@@ -66,12 +68,12 @@ export default function DataManagementDialog({
 
     if (isPosition) {
       onSave({
-        name: trimmed,
-        is_leader: isLeader ? 1 : 0,
+        name: parsed.data.name,
+        is_leader: parsed.data.is_leader ? 1 : 0,
       });
     } else {
       onSave({
-        name: trimmed,
+        name: parsed.data.name,
       });
     }
   };

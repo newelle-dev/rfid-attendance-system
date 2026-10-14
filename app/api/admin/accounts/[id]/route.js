@@ -2,20 +2,8 @@ import { NextResponse } from "next/server";
 import { executeQuery } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { requireAdminSession } from "@/lib/auth";
-import { z } from "zod";
+import { updateAccountSchema } from "@/lib/validations/accounts";
 
-const updateAccountSchema = z.object({
-  name: z.string().trim().min(2, "Full name must be at least 2 characters"),
-  role: z.enum(["superadmin", "admin", "security", "hr"], {
-    errorMap: () => ({ message: "Valid role is required (superadmin, admin, security, hr)" }),
-  }),
-  employeeId: z.string().trim().min(1, "Ashima ID cannot be empty").optional(),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .optional()
-    .or(z.literal("")),
-});
 
 /**
  * GET: Fetch a single admin account by ID

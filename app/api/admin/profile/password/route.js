@@ -1,41 +1,40 @@
 import { NextResponse } from "next/server";
 import { executeQuery } from "@/lib/db";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireAdminSession } from "@/lib/auth";
+import { passwordChangeApiSchema } from "@/lib/validations/auth";
 import bcrypt from "bcryptjs";
 
 export async function PUT(request) {
-  const session = await getServerSession(authOptions);
-  
-  // Check authentication
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-  }
+  const { error, user } = await requireAdminSession();
+  if (error) return error;
 
   try {
-    const { currentPassword, newPassword } = await request.json();
-    
-    // Validate required fields
-    if (!currentPassword || !newPassword) {
+    const body = await request.json();
+    const parsed = passwordChangeApiSchema.safeParse(body);
+
+    if (!parsed.success) {
+      const firstError = parsed.error.issues?.[0]?.message || "Validation failed";
       return NextResponse.json(
-        { error: 'All fields are required' },
+        { error: firstError, details: parsed.error.format() },
         { status: 400 }
       );
     }
 
+    const { currentPassword, newPassword } = parsed.data;
+
     // Get current user data
     const getUserQuery = `
-      SELECT password FROM admin_users WHERE id = ?
+      SELECT password FROM admin_users WHERE id = ? LIMIT 1
     `;
     
-    const user = await executeQuery({
+    const dbUsers = await executeQuery({
       query: getUserQuery,
-      values: [session.user.id]
+      values: [user.id],
     });
 
-    if (user.length === 0) {
+    if (dbUsers.length === 0) {
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: "User account not found" },
         { status: 404 }
       );
     }
@@ -43,12 +42,12 @@ export async function PUT(request) {
     // Verify current password
     const isPasswordValid = await bcrypt.compare(
       currentPassword,
-      user[0].password
+      dbUsers[0].password
     );
 
     if (!isPasswordValid) {
       return NextResponse.json(
-        { error: 'Current password is incorrect' },
+        { error: "Current password is incorrect" },
         { status: 400 }
       );
     }
@@ -66,18 +65,18 @@ export async function PUT(request) {
 
     await executeQuery({
       query: updateQuery,
-      values: [hashedPassword, session.user.id]
+      values: [hashedPassword, user.id],
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Password updated successfully'
+      message: "Password updated successfully",
     });
   } catch (error) {
-    console.error('Error updating password:', error);
+    console.error("Error updating password:", error);
     return NextResponse.json(
-      { error: 'Failed to update password' },
+      { error: "Failed to update password" },
       { status: 500 }
     );
   }
-}
+}
