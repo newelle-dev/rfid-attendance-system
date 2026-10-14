@@ -1,34 +1,46 @@
 import { executeQuery } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { requireAdminSession } from "@/lib/auth";
+import dayjs from "dayjs";
 
 export async function GET(req) {
+  const { error } = await requireAdminSession(["admin", "hr", "superadmin", "security"]);
+  if (error) return error;
+
   try {
     const { searchParams } = new URL(req.url);
 
     // Parse query parameters
-    const search = searchParams.get('search') || '';
-    const logType = searchParams.get('log_type') || '';
-    const startDate = searchParams.get('start_date') || '';
-    const endDate = searchParams.get('end_date') || '';
+    const search = searchParams.get("search")?.trim() || "";
+    const logType = searchParams.get("log_type")?.toUpperCase() || "";
+    const department = searchParams.get("department")?.trim() || "";
+    const startDate = searchParams.get("start_date")?.trim() || "";
+    const endDate = searchParams.get("end_date")?.trim() || "";
 
     // Build the search condition
-    let conditions = [];
+    const conditions = [];
     const values = [];
 
-    // Add search condition
+    // Search condition
     if (search) {
       conditions.push("(l.ashima_id LIKE ? OR e.name LIKE ?)");
       values.push(`%${search}%`, `%${search}%`);
     }
 
-    // Add log type filter
-    if (logType === 'IN') {
+    // Punch status filter
+    if (logType === "IN") {
       conditions.push("l.out_time IS NULL");
-    } else if (logType === 'OUT') {
+    } else if (logType === "OUT") {
       conditions.push("l.out_time IS NOT NULL");
     }
 
-    // Add date range filters
+    // Department filter
+    if (department) {
+      conditions.push("e.department_id = ?");
+      values.push(department);
+    }
+
+    // Date range filters
     if (startDate) {
       conditions.push("DATE(l.in_time) >= ?");
       values.push(startDate);
@@ -39,16 +51,12 @@ export async function GET(req) {
       values.push(endDate);
     }
 
-    // Combine conditions
-    const whereClause = conditions.length > 0 
-      ? "WHERE " + conditions.join(" AND ") 
-      : "";
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
     // Query to fetch logs for export
     const query = `
       SELECT
-        l.ashima_id, e.name, d.name AS department, 
-        DATE(l.in_time) AS log_date,
+        l.ashima_id, e.name, d.name AS department, p.name AS position,
         l.in_time, l.out_time
       FROM
         attendance_logs l
@@ -56,6 +64,8 @@ export async function GET(req) {
         employees e ON e.ashima_id = l.ashima_id
       LEFT JOIN
         departments d ON e.department_id = d.id
+      LEFT JOIN
+        positions p ON e.position_id = p.id
       ${whereClause}
       ORDER BY l.in_time DESC
     `;
@@ -63,39 +73,67 @@ export async function GET(req) {
     const logs = await executeQuery({ query, values });
 
     // Generate CSV content
-    const headers = ["Ashima ID", "Name", "Department", "Date", "Time In", "Time Out"];
-    
+    const headers = [
+      "Ashima ID",
+      "Employee Name",
+      "Department",
+      "Position",
+      "Date",
+      "Time In",
+      "Time Out",
+      "Shift Duration",
+      "Status",
+    ];
+
+    const escapeCsv = (val) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
     let csvContent = headers.join(",") + "\n";
-    
-    logs.forEach(log => {
-      const formatDate = (date) => {
-        if (!date) return "";
-        return new Date(date).toLocaleDateString();
-      };
-      
-      const formatTime = (datetime) => {
-        if (!datetime) return "";
-        return new Date(datetime).toLocaleTimeString();
-      };
-      
+
+    logs.forEach((log) => {
+      const inDay = log.in_time ? dayjs(log.in_time) : null;
+      const outDay = log.out_time ? dayjs(log.out_time) : null;
+
+      const dateStr = inDay ? inDay.format("YYYY-MM-DD") : "N/A";
+      const timeInStr = inDay ? inDay.format("hh:mm:ss A") : "N/A";
+      const timeOutStr = outDay ? outDay.format("hh:mm:ss A") : "—";
+
+      let durationStr = "Active / In Progress";
+      let statusStr = "On-Premise";
+
+      if (inDay && outDay) {
+        statusStr = "Completed";
+        const diffMins = outDay.diff(inDay, "minute");
+        const hours = Math.floor(diffMins / 60);
+        const mins = diffMins % 60;
+        durationStr = `${hours}h ${mins}m`;
+      }
+
       const row = [
-        log.ashima_id || "",
-        (log.name || "").replace(/,/g, " "), // Replace commas in names
-        (log.department || "").replace(/,/g, " "), // Replace commas in department names
-        formatDate(log.log_date),
-        formatTime(log.in_time),
-        formatTime(log.out_time)
+        escapeCsv(log.ashima_id),
+        escapeCsv(log.name || "N/A"),
+        escapeCsv(log.department || "Unassigned"),
+        escapeCsv(log.position || "N/A"),
+        escapeCsv(dateStr),
+        escapeCsv(timeInStr),
+        escapeCsv(timeOutStr),
+        escapeCsv(durationStr),
+        escapeCsv(statusStr),
       ];
-      
+
       csvContent += row.join(",") + "\n";
     });
 
-    // Return CSV as a downloadable file
+    const exportDate = dayjs().format("YYYY-MM-DD");
+
     return new Response(csvContent, {
       headers: {
-        "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename="attendance_logs_${new Date().toISOString().split('T')[0]}.csv"`
-      }
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="attendance_logs_${exportDate}.csv"`,
+      },
     });
   } catch (error) {
     console.error("Failed to export attendance logs:", error);

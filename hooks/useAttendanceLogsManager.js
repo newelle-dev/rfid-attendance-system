@@ -1,292 +1,401 @@
-/**
- * Custom hook for managing attendance logs data, state, and operations
- * Centralizes all attendance logs related business logic and API calls
- */
+"use client";
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { toast } from 'sonner';
+import { useState, useCallback, useEffect, useMemo, useRef, startTransition } from "react";
+import { toast } from "sonner";
+import dayjs from "dayjs";
 
 /**
- * Debounce utility function
- * @param {Function} func - Function to debounce
- * @param {number} delay - Delay in milliseconds
- * @returns {Function} Debounced function
- */
-const useDebounce = (func, delay = 300) => {
-  const debouncedFunc = useMemo(() => {
-    let timeoutId;
-    return (...args) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => func(...args), delay);
-    };
-  }, [func, delay]);
-
-  return debouncedFunc;
-};
-
-/**
- * Hook for managing attendance logs data and operations
- * @returns {Object} Attendance logs management state and functions
+ * Custom hook for managing attendance logs data, filters, live auto-polling, and slide-over inspection.
  */
 export const useAttendanceLogsManager = () => {
-  // Core data state
+  // Core data states
   const [logs, setLogs] = useState([]);
   const [totalLogs, setTotalLogs] = useState(0);
+  const [stats, setStats] = useState({
+    total_logs: 0,
+    in_only: 0,
+    complete_logs: 0,
+    todayCount: 0,
+  });
   const [departments, setDepartments] = useState([]);
-  
+
   // Loading states
   const [loading, setLoading] = useState(true);
+  const [loadingStats, setLoadingStats] = useState(true);
   const [loadingDepartments, setLoadingDepartments] = useState(false);
   const [exporting, setExporting] = useState(false);
-  
-  // Filter and search state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({
-    logType: '',
-    department: '',
-    dateRange: { from: null, to: null },
-  });
-  const [pagination, setPagination] = useState({ 
-    pageIndex: 0, 
-    pageSize: 100 
-  });
-  
-  // Dialog state
-  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
-  
-  // Error state
   const [error, setError] = useState(null);
 
+  // Search & Filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filters, setFilters] = useState({
+    logType: "ALL",
+    department: "",
+    startDate: "",
+    endDate: "",
+    datePreset: "all",
+  });
+
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 25,
+  });
+
+  // Slide-over inspection sheet state
+  const [selectedLog, setSelectedLog] = useState(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  // Live Auto-Refresh (30s polling)
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+
   /**
-   * Fetches attendance logs with current filters and pagination
+   * Fetches KPI Statistics
    */
-  const fetchLogs = useCallback(async () => {
+  const fetchStats = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
-      
-      const searchParams = new URLSearchParams({
-        page: pagination.pageIndex + 1,
-        limit: pagination.pageSize,
-        search: searchQuery,
-        log_type: filters.logType || '',
-        department: filters.department || '',
-        start_date: filters.dateRange.from
-          ? filters.dateRange.from.toISOString().split('T')[0]
-          : '',
-        end_date: filters.dateRange.to
-          ? filters.dateRange.to.toISOString().split('T')[0]
-          : '',
+      setLoadingStats(true);
+      const res = await fetch("/api/admin/attendance-logs/stats");
+      if (!res.ok) throw new Error("Failed to load statistics");
+      const data = await res.json();
+      setStats({
+        total_logs: data.total_logs || 0,
+        in_only: data.in_only || 0,
+        complete_logs: data.complete_logs || 0,
+        todayCount: data.todayCount || 0,
       });
-
-      const response = await fetch(`/api/admin/attendance-logs?${searchParams}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch attendance logs');
-      }
-      
-      const data = await response.json();
-      setLogs(data.data || []);
-      setTotalLogs(data.total || 0);
-    } catch (error) {
-      console.error('Error fetching attendance logs:', error);
-      setError(error.message);
-      toast.error(error.message || 'Failed to fetch attendance logs');
+    } catch (err) {
+      console.error("Attendance stats error:", err);
     } finally {
-      setLoading(false);
+      setLoadingStats(false);
     }
-  }, [pagination.pageIndex, pagination.pageSize, filters, searchQuery]);
+  }, []);
 
   /**
-   * Fetches departments for filter options
+   * Fetches Departments for dropdown selection
    */
   const fetchDepartments = useCallback(async () => {
     try {
       setLoadingDepartments(true);
-      setError(null);
-      
-      const response = await fetch('/api/admin/departments');
-      if (!response.ok) {
-        throw new Error('Failed to fetch departments');
-      }
-      
-      const data = await response.json();
+      const res = await fetch("/api/admin/departments");
+      if (!res.ok) throw new Error("Failed to load departments");
+      const data = await res.json();
       setDepartments(data.departments || []);
-    } catch (error) {
-      console.error('Error fetching departments:', error);
-      setError(error.message);
-      toast.error('Failed to load departments for filtering');
+    } catch (err) {
+      console.error("Departments fetch error:", err);
     } finally {
       setLoadingDepartments(false);
     }
   }, []);
 
   /**
-   * Handles search query updates with debouncing
+   * Fetches Paginated Attendance Logs
    */
-  const handleSearchQueryUpdate = useCallback((query) => {
+  const fetchLogs = useCallback(
+    async (isBackground = false) => {
+      try {
+        if (!isBackground) {
+          setLoading(true);
+        }
+        setError(null);
+
+        const params = new URLSearchParams({
+          page: String(pagination.pageIndex + 1),
+          limit: String(pagination.pageSize),
+          search: searchQuery.trim(),
+          log_type: filters.logType === "ALL" ? "" : filters.logType,
+          department: filters.department || "",
+          start_date: filters.startDate || "",
+          end_date: filters.endDate || "",
+        });
+
+        const res = await fetch(`/api/admin/attendance-logs?${params}`);
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.message || "Failed to fetch attendance logs");
+        }
+
+        const data = await res.json();
+        setLogs(data.data || []);
+        setTotalLogs(data.total || 0);
+        setLastUpdated(new Date());
+      } catch (err) {
+        console.error("Attendance logs error:", err);
+        setError(err.message);
+        if (!isBackground) {
+          toast.error(err.message || "Failed to load logs");
+        }
+      } finally {
+        if (!isBackground) {
+          setLoading(false);
+        }
+      }
+    },
+    [
+      pagination.pageIndex,
+      pagination.pageSize,
+      searchQuery,
+      filters.logType,
+      filters.department,
+      filters.startDate,
+      filters.endDate,
+    ]
+  );
+
+  // Initial loads
+  useEffect(() => {
+    startTransition(() => {
+      fetchStats();
+      fetchDepartments();
+    });
+  }, [fetchStats, fetchDepartments]);
+
+  useEffect(() => {
+    startTransition(() => {
+      fetchLogs();
+    });
+  }, [fetchLogs]);
+
+  // Live Polling Effect (30s interval when autoRefresh is enabled)
+  const timerRef = useRef(null);
+  useEffect(() => {
+    if (autoRefresh) {
+      timerRef.current = setInterval(() => {
+        fetchLogs(true);
+        fetchStats();
+      }, 30000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [autoRefresh, fetchLogs, fetchStats]);
+
+  /**
+   * Search Input Handler (resets to page 1)
+   */
+  const handleSearchChange = useCallback((query) => {
     setSearchQuery(query);
-    setPagination(prev => ({ ...prev, pageIndex: 0 }));
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   }, []);
 
-  const debouncedSearchUpdate = useDebounce(handleSearchQueryUpdate, 500);
+  /**
+   * Filter Change Handler
+   */
+  const handleFilterChange = useCallback((key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, []);
 
   /**
-   * Handles search input changes
-   * @param {string} value - Search input value
+   * Date Preset Shortcut Handler
    */
-  const handleSearchChange = useCallback((value) => {
-    debouncedSearchUpdate(value);
-  }, [debouncedSearchUpdate]);
+  const handleDatePreset = useCallback((preset) => {
+    const today = dayjs().format("YYYY-MM-DD");
+    let startDate = "";
+    let endDate = "";
+
+    switch (preset) {
+      case "today":
+        startDate = today;
+        endDate = today;
+        break;
+      case "yesterday":
+        startDate = dayjs().subtract(1, "day").format("YYYY-MM-DD");
+        endDate = dayjs().subtract(1, "day").format("YYYY-MM-DD");
+        break;
+      case "week":
+        startDate = dayjs().subtract(6, "day").format("YYYY-MM-DD");
+        endDate = today;
+        break;
+      case "month":
+        startDate = dayjs().startOf("month").format("YYYY-MM-DD");
+        endDate = today;
+        break;
+      case "all":
+      default:
+        startDate = "";
+        endDate = "";
+        break;
+    }
+
+    setFilters((prev) => ({
+      ...prev,
+      datePreset: preset,
+      startDate,
+      endDate,
+    }));
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, []);
 
   /**
-   * Exports attendance logs as CSV
+   * Custom Date Range Setter
    */
-  const handleExportLogs = useCallback(async () => {
+  const handleCustomDateRange = useCallback((start, end) => {
+    setFilters((prev) => ({
+      ...prev,
+      datePreset: "custom",
+      startDate: start || "",
+      endDate: end || "",
+    }));
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, []);
+
+  /**
+   * Reset All Filters
+   */
+  const resetFilters = useCallback(() => {
+    setSearchQuery("");
+    setFilters({
+      logType: "ALL",
+      department: "",
+      startDate: "",
+      endDate: "",
+      datePreset: "all",
+    });
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, []);
+
+  /**
+   * Interactive KPI click handler
+   */
+  const handleKpiClick = useCallback(
+    (cardType) => {
+      if (cardType === "in_only") {
+        setFilters((prev) => ({
+          ...prev,
+          logType: prev.logType === "IN" ? "ALL" : "IN",
+        }));
+        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+      } else if (cardType === "complete_logs") {
+        setFilters((prev) => ({
+          ...prev,
+          logType: prev.logType === "OUT" ? "ALL" : "OUT",
+        }));
+        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+      } else if (cardType === "todayCount") {
+        if (filters.datePreset === "today") {
+          handleDatePreset("all");
+        } else {
+          handleDatePreset("today");
+        }
+      } else if (cardType === "total_logs") {
+        resetFilters();
+      }
+    },
+    [filters.datePreset, handleDatePreset, resetFilters]
+  );
+
+  /**
+   * Manual Refresh
+   */
+  const refreshLogs = useCallback(() => {
+    fetchLogs(false);
+    fetchStats();
+  }, [fetchLogs, fetchStats]);
+
+  /**
+   * CSV Export with active filters
+   */
+  const handleExportCsv = useCallback(async () => {
     try {
       setExporting(true);
-      setError(null);
-      
-      const searchParams = new URLSearchParams({
-        page: 1,
-        limit: 10000, // Export all matching logs
-        search: searchQuery,
-        log_type: filters.logType || '',
-        department: filters.department || '',
-        start_date: filters.dateRange.from
-          ? filters.dateRange.from.toISOString().split('T')[0]
-          : '',
-        end_date: filters.dateRange.to
-          ? filters.dateRange.to.toISOString().split('T')[0]
-          : '',
+      const params = new URLSearchParams({
+        search: searchQuery.trim(),
+        log_type: filters.logType === "ALL" ? "" : filters.logType,
+        department: filters.department || "",
+        start_date: filters.startDate || "",
+        end_date: filters.endDate || "",
       });
 
-      const response = await fetch(`/api/admin/attendance-logs/export?${searchParams}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to export logs');
+      const res = await fetch(`/api/admin/attendance-logs/export?${params}`);
+      if (!res.ok) {
+        throw new Error("Failed to export attendance logs");
       }
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      
-      // Add timestamp to filename for better organization
-      const date = new Date().toISOString().split('T')[0];
-      link.download = `attendance_logs_${date}.csv`;
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      toast.success('Attendance logs exported successfully');
-    } catch (error) {
-      console.error('Error exporting logs:', error);
-      setError(error.message);
-      toast.error(error.message || 'Failed to export logs');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `attendance_logs_${dayjs().format("YYYY-MM-DD")}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Attendance logs exported successfully");
+    } catch (err) {
+      console.error("Export error:", err);
+      toast.error(err.message || "Failed to export logs");
     } finally {
       setExporting(false);
     }
   }, [searchQuery, filters]);
 
   /**
-   * Opens the filter dialog
+   * Open Slide-Over Detail Sheet
    */
-  const openFilterDialog = useCallback(() => {
-    setIsFilterDialogOpen(true);
+  const openDetailSheet = useCallback((log) => {
+    setSelectedLog(log);
+    setIsDetailOpen(true);
   }, []);
 
   /**
-   * Resets all filters to default values
+   * Computed: Check if any active filter is applied
    */
-  const resetFilters = useCallback(() => {
-    setFilters({
-      logType: '',
-      department: '',
-      dateRange: { from: null, to: null },
-    });
-    setSearchQuery('');
-    setPagination({ pageIndex: 0, pageSize: 100 });
-  }, []);
-
-  /**
-   * Refreshes attendance logs data
-   */
-  const refreshLogs = useCallback(() => {
-    fetchLogs();
-  }, [fetchLogs]);
-
-  /**
-   * Computed values for UI state
-   */
-  const computedValues = useMemo(() => {
-    const hasActiveFilters = Boolean(
-      filters.logType || 
-      filters.department || 
-      filters.dateRange.from || 
-      filters.dateRange.to
+  const isFiltered = useMemo(() => {
+    return (
+      Boolean(searchQuery.trim()) ||
+      filters.logType !== "ALL" ||
+      Boolean(filters.department) ||
+      Boolean(filters.startDate) ||
+      Boolean(filters.endDate)
     );
-    const hasSearchQuery = searchQuery.trim().length > 0;
-    const hasFiltersOrSearch = hasActiveFilters || hasSearchQuery;
-    const showEmptyState = !loading && logs.length === 0;
-    
-    return {
-      hasActiveFilters,
-      hasSearchQuery,
-      hasFiltersOrSearch,
-      showEmptyState,
-    };
-  }, [filters, searchQuery, loading, logs.length]);
-
-  // Initial data loading
-  useEffect(() => {
-    fetchDepartments();
-  }, [fetchDepartments]);
-
-  useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+  }, [searchQuery, filters]);
 
   return {
-    // Data state
+    // Data states
     logs,
     totalLogs,
+    stats,
     departments,
-    
-    // Loading states
+
+    // Loading & Error states
     loading,
+    loadingStats,
     loadingDepartments,
     exporting,
-    
-    // Filter and search state
+    error,
+
+    // Search, Filters & Pagination
     searchQuery,
+    setSearchQuery,
     filters,
     setFilters,
     pagination,
     setPagination,
-    
-    // Dialog state
-    isFilterDialogOpen,
-    setIsFilterDialogOpen,
-    
-    // Error state
-    error,
-    setError,
-    
-    // Computed values
-    computedValues,
-    
-    // Actions
+    isFiltered,
+
+    // Filter Actions
     handleSearchChange,
-    handleExportLogs,
-    openFilterDialog,
+    handleFilterChange,
+    handleDatePreset,
+    handleCustomDateRange,
     resetFilters,
+    handleKpiClick,
+
+    // Actions & Polling
     refreshLogs,
-    fetchLogs,
-    fetchDepartments,
+    handleExportCsv,
+    autoRefresh,
+    setAutoRefresh,
+    lastUpdated,
+
+    // Slide-over Sheet
+    selectedLog,
+    isDetailOpen,
+    setIsDetailOpen,
+    openDetailSheet,
   };
 };

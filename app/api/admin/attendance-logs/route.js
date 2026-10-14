@@ -1,45 +1,49 @@
 import { executeQuery } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { requireAdminSession } from "@/lib/auth";
 
-// Fetch attendance logs with employee details
+// Fetch attendance logs with employee details, photo, and position
 export async function GET(req) {
+  const { error } = await requireAdminSession(["admin", "hr", "superadmin", "security"]);
+  if (error) return error;
+
   try {
     const { searchParams } = new URL(req.url);
 
     // Parse query parameters
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '100'); // Change default to 100
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.max(1, parseInt(searchParams.get("limit") || "100", 10));
     const offset = (page - 1) * limit;
-    const search = searchParams.get('search') || '';
-    const logType = searchParams.get('log_type') || 'ALL';
-    const department = searchParams.get('department') || ''; // Add department filter
-    const startDate = searchParams.get('start_date') || '';
-    const endDate = searchParams.get('end_date') || '';
+    const search = searchParams.get("search")?.trim() || "";
+    const logType = searchParams.get("log_type")?.toUpperCase() || "ALL";
+    const department = searchParams.get("department")?.trim() || "";
+    const startDate = searchParams.get("start_date")?.trim() || "";
+    const endDate = searchParams.get("end_date")?.trim() || "";
 
-    // Build the search condition
-    let conditions = [];
+    // Build query conditions
+    const conditions = [];
     const values = [];
 
-    // Add search condition
+    // Search by Ashima ID or employee name
     if (search) {
       conditions.push("(l.ashima_id LIKE ? OR e.name LIKE ?)");
       values.push(`%${search}%`, `%${search}%`);
     }
 
-    // Add log type filter
-    if (logType === 'IN') {
+    // Filter by punch status
+    if (logType === "IN") {
       conditions.push("l.out_time IS NULL");
-    } else if (logType === 'OUT') {
+    } else if (logType === "OUT") {
       conditions.push("l.out_time IS NOT NULL");
     }
-    
-    // Add department filter
+
+    // Filter by department
     if (department) {
       conditions.push("e.department_id = ?");
       values.push(department);
     }
 
-    // Add date range filters
+    // Filter by date range
     if (startDate) {
       conditions.push("DATE(l.in_time) >= ?");
       values.push(startDate);
@@ -50,56 +54,56 @@ export async function GET(req) {
       values.push(endDate);
     }
 
-    // Combine conditions
-    const whereClause = conditions.length > 0 
-      ? "WHERE " + conditions.join(" AND ") 
-      : "";
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-    // Add pagination values
-    values.push(limit, offset);
+    // Count total records for pagination
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM attendance_logs l
+      LEFT JOIN employees e ON e.ashima_id = l.ashima_id
+      LEFT JOIN departments d ON e.department_id = d.id
+      ${whereClause}
+    `;
 
-    // Query to fetch logs with pagination
+    const countResult = await executeQuery({ query: countQuery, values: [...values] });
+    const total = countResult[0]?.total || 0;
+
+    // Fetch paginated logs
     const query = `
       SELECT
         l.id, l.ashima_id, e.name, e.department_id,
-        d.name AS department, l.log_type,
-        l.in_time, l.out_time
+        d.name AS department, p.name AS position,
+        e.photo, e.rfid_tag,
+        l.log_type, l.in_time, l.out_time
       FROM
         attendance_logs l
       LEFT JOIN
         employees e ON e.ashima_id = l.ashima_id
       LEFT JOIN
         departments d ON e.department_id = d.id
+      LEFT JOIN
+        positions p ON e.position_id = p.id
       ${whereClause}
       ORDER BY l.in_time DESC
       LIMIT ? OFFSET ?
     `;
 
-    const logs = await executeQuery({ query, values });
+    const logs = await executeQuery({
+      query,
+      values: [...values, limit, offset],
+    });
 
-    // Count total records for pagination
-    const countConditions = conditions.length > 0 
-      ? "WHERE " + conditions.join(" AND ") 
-      : "";
-    const countValues = values.slice(0, values.length - 2); // Remove limit and offset
+    const formattedLogs = logs.map((log) => ({
+      ...log,
+      photo: log.photo ? `data:image/png;base64,${Buffer.from(log.photo).toString("base64")}` : null,
+    }));
 
-    const countQuery = `
-      SELECT COUNT(*) as total
-      FROM attendance_logs l
-      LEFT JOIN employees e ON e.ashima_id = l.ashima_id
-      LEFT JOIN departments d ON e.department_id = d.id
-      ${countConditions}
-    `;
-
-    const countResult = await executeQuery({ query: countQuery, values: countValues });
-    const total = countResult[0].total;
-
-    return NextResponse.json({ 
-      data: logs,
+    return NextResponse.json({
+      data: formattedLogs,
       total,
       page,
       limit,
-      pages: Math.ceil(total / limit) 
+      pages: Math.ceil(total / limit),
     });
   } catch (err) {
     console.error("Failed to fetch attendance logs:", err);
