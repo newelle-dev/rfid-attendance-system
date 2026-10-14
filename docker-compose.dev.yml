@@ -1,0 +1,65 @@
+# ========================================================
+# RFID Attendance System — Local Development Docker Compose
+# Includes live hot-reloading & volume mounts
+# ========================================================
+
+services:
+  # MySQL Database Service
+  db:
+    image: mysql:8.0
+    container_name: rfid_db_dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-rfid_attendance}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - db_data_dev:/var/lib/mysql
+      - ./databases/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./databases/seed-admins.sql:/docker-entrypoint-initdb.d/02-seed-admins.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - rfid-dev-network
+
+  # Next.js Web Application (Development Server with Hot Reload)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: rfid_app_dev
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      DB_HOST: db
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-rootpassword}
+      DB_NAME: ${DB_NAME:-rfid_attendance}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-dev_rfid_secret_key_12345}
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "${PORT:-3000}:3000"
+    networks:
+      - rfid-dev-network
+
+networks:
+  rfid-dev-network:
+    driver: bridge
+
+volumes:
+  db_data_dev:
+    driver: local

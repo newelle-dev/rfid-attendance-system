@@ -1,0 +1,59 @@
+# ========================================================
+# RFID Attendance System — Production Docker Compose
+# ========================================================
+
+services:
+  # MySQL Database Service
+  db:
+    image: mysql:8.0
+    container_name: rfid_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-rfid_attendance}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./databases/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./databases/seed-admins.sql:/docker-entrypoint-initdb.d/02-seed-admins.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - rfid-network
+
+  # Next.js Web Application (Standalone Production Build)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: rfid_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DB_HOST: db
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-rootpassword}
+      DB_NAME: ${DB_NAME:-rfid_attendance}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-production_rfid_secret_change_me}
+    ports:
+      - "${PORT:-3000}:3000"
+    networks:
+      - rfid-network
+
+networks:
+  rfid-network:
+    driver: bridge
+
+volumes:
+  db_data:
+    driver: local
