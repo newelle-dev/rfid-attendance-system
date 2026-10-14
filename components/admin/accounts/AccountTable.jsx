@@ -1,5 +1,6 @@
 "use client";
 
+import React, { memo } from "react";
 import {
   Table,
   TableBody,
@@ -9,223 +10,390 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/utils/dateUtils";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useState } from "react";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Edit2,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  IdCard,
+  Lock,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { getRoleMeta, PAGE_SIZE_OPTIONS } from "@/constants/accountConstants";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 
-// Updated column definitions without email
-const ACCOUNT_COLUMNS = [
-  { id: "username", header: "Username" },
-  { id: "name", header: "Full Name" },
-  { id: "role", header: "Role" },
-  { id: "lastLogin", header: "Last Login" },
-  { id: "actions", header: "Actions" },
-];
+dayjs.extend(relativeTime);
 
-export default function AccountTable({
-  accounts,
-  totalAccounts,
-  pagination,
-  setPagination,
+/**
+ * AccountTable Component
+ * High-precision administrative account roster with identity avatars,
+ * role authorization badges, login activity tracking, and removal safeguards.
+ */
+const AccountTable = memo(function AccountTable({
+  accounts = [],
+  pagination = { page: 1, limit: 10, total: 0, totalPages: 1 },
+  onPageChange,
+  onLimitChange,
   onEdit,
   onDelete,
   session,
+  loading = false,
 }) {
-  const [accountToDelete, setAccountToDelete] = useState(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { page, limit, total, totalPages } = pagination;
+  const currentUserId = session?.user?.id ? Number(session.user.id) : null;
+  const currentUsername = session?.user?.username || "";
+  const isSuperAdmin = session?.user?.role === "superadmin";
 
-  // Helper function to format role names
-  const getRoleBadgeStyle = (role) => {
-    switch (role) {
-      case "superadmin":
-        return "bg-purple-600 hover:bg-purple-700";
-      case "admin":
-        return "bg-blue-500 hover:bg-blue-600";
-      case "security":
-        return "bg-green-500 hover:bg-green-600";
-      case "hr":
-        return "bg-amber-500 hover:bg-amber-600";
-      default:
-        return "bg-gray-500 hover:bg-gray-600";
+  const startItem = total === 0 ? 0 : (page - 1) * limit + 1;
+  const endItem = Math.min(page * limit, total);
+
+  // Helper to extract initials
+  const getInitials = (name = "") => {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
-  };
-
-  // Check if the current user can edit/delete a specific account
-  const canManageAccount = (account) => {
-    // Only superadmin can manage superadmin accounts
-    if (account.role === "superadmin") {
-      return session?.user?.role === "superadmin";
-    }
-    // Admin and superadmin can manage other accounts
-    return ["admin", "superadmin"].includes(session?.user?.role);
-  };
-
-  // Handle delete confirmation
-  const handleDeleteClick = (account) => {
-    setAccountToDelete(account);
-    setShowDeleteDialog(true);
-  };
-
-  const confirmDelete = () => {
-    if (accountToDelete) {
-      onDelete(accountToDelete.id);
-      setShowDeleteDialog(false);
-      setAccountToDelete(null);
-    }
-  };
-
-  // Handle pagination
-  const pageCount = Math.ceil(totalAccounts / pagination.pageSize);
-
-  const handlePreviousPage = () => {
-    setPagination((prev) => ({
-      ...prev,
-      pageIndex: Math.max(0, prev.pageIndex - 1),
-    }));
-  };
-
-  const handleNextPage = () => {
-    setPagination((prev) => ({
-      ...prev,
-      pageIndex: Math.min(pageCount - 1, prev.pageIndex + 1),
-    }));
+    return (name.slice(0, 2) || "U").toUpperCase();
   };
 
   return (
-    <div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {ACCOUNT_COLUMNS.map((column) => (
-              <TableHead key={column.id}>{column.header}</TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {accounts.length === 0 ? (
-            <TableRow>
-              <TableCell
-                colSpan={ACCOUNT_COLUMNS.length}
-                className="text-center py-10 text-muted-foreground"
-              >
-                No accounts found
-              </TableCell>
-            </TableRow>
-          ) : (
-            accounts.map((account) => (
-              <TableRow key={account.id}>
-                <TableCell className="font-medium">{account.username}</TableCell>
-                <TableCell>{account.name}</TableCell>
-                {/* Email cell removed */}
-                <TableCell>
-                  <Badge className={getRoleBadgeStyle(account.role)}>
-                    {account.role === "superadmin"
-                      ? "Super Admin"
-                      : account.role === "hr"
-                      ? "HR"
-                      : account.role.charAt(0).toUpperCase() + account.role.slice(1)}
-                  </Badge>
-                </TableCell>
-                <TableCell>{account.lastLogin ? formatDate(account.lastLogin) : "Never"}</TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onEdit(account)}
-                      disabled={!canManageAccount(account)}
-                      title={
-                        !canManageAccount(account)
-                          ? "You don't have permission to edit this account"
-                          : "Edit account"
-                      }
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-500 hover:text-red-700"
-                      onClick={() => handleDeleteClick(account)}
-                      disabled={!canManageAccount(account) || account.id === session?.user?.id}
-                      title={
-                        account.id === session?.user?.id
-                          ? "You cannot delete your own account"
-                          : !canManageAccount(account)
-                          ? "You don't have permission to delete this account"
-                          : "Delete account"
-                      }
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
+    <TooltipProvider>
+      <div className="space-y-4">
+        {/* Responsive Table Container */}
+        <div className="rounded-md border border-border/80 overflow-hidden bg-card">
+          <Table>
+            <TableHeader className="bg-muted/50">
+              <TableRow className="border-border/80 hover:bg-transparent">
+                <TableHead className="w-12 text-center text-xs font-semibold text-foreground">
+                  #
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-foreground min-w-[200px]">
+                  User Identity
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-foreground">
+                  Ashima ID & Linkage
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-foreground">
+                  Access Role
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-foreground">
+                  Last Active
+                </TableHead>
+                <TableHead className="text-xs font-semibold text-foreground">
+                  Created
+                </TableHead>
+                <TableHead className="text-right text-xs font-semibold text-foreground pr-4 w-24">
+                  Actions
+                </TableHead>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            </TableHeader>
+            <TableBody>
+              {accounts.map((account, index) => {
+                const rowNumber = (page - 1) * limit + index + 1;
+                const isSelf =
+                  (currentUserId && Number(account.id) === currentUserId) ||
+                  (currentUsername && account.username === currentUsername);
+                const isTargetSuperAdmin = account.role === "superadmin";
+                const roleMeta = getRoleMeta(account.role);
 
-      {/* Pagination controls */}
-      <div className="flex items-center justify-between space-x-2 py-4">
-        <div className="text-sm text-muted-foreground">
-          Showing {accounts.length} of {totalAccounts} accounts
+                // Permission safeguards
+                const canEditThis = !isTargetSuperAdmin || isSuperAdmin;
+                const canDeleteThis =
+                  !isSelf && (!isTargetSuperAdmin || isSuperAdmin);
+
+                return (
+                  <TableRow
+                    key={account.id}
+                    className={cn(
+                      "border-border/80 hover:bg-muted/30 transition-colors",
+                      isSelf && "bg-muted/15"
+                    )}
+                  >
+                    {/* Row Index */}
+                    <TableCell className="text-center font-mono text-xs text-muted-foreground/80 py-3">
+                      {rowNumber}
+                    </TableCell>
+
+                    {/* User Identity: Avatar, Name, Self Tag, Username */}
+                    <TableCell className="py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="size-8 rounded-full bg-muted/80 border border-border/80 flex items-center justify-center font-semibold text-xs text-foreground shrink-0 select-none">
+                          {getInitials(account.name)}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-medium text-xs text-foreground tracking-tight truncate">
+                              {account.name}
+                            </span>
+                            {isSelf && (
+                              <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20">
+                                You
+                              </span>
+                            )}
+                          </div>
+                          <p className="font-mono text-[11px] text-muted-foreground truncate">
+                            @{account.username}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+
+                    {/* Ashima ID & Linkage */}
+                    <TableCell className="py-3">
+                      <div className="space-y-0.5">
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-muted/60 border border-border/70 text-foreground">
+                          <IdCard className="size-3 text-muted-foreground" />
+                          <span>{account.employeeId}</span>
+                        </div>
+                        {account.linkedEmployee && (
+                          <p className="text-[10px] text-muted-foreground truncate max-w-[180px]">
+                            {account.linkedEmployee.department} •{" "}
+                            {account.linkedEmployee.position}
+                          </p>
+                        )}
+                      </div>
+                    </TableCell>
+
+                    {/* Access Role Badge */}
+                    <TableCell className="py-3">
+                      <Tooltip>
+                        <TooltipTrigger render={
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border cursor-default",
+                              roleMeta.badgeClass
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "size-1.5 rounded-full shrink-0",
+                                roleMeta.dotClass
+                              )}
+                              aria-hidden="true"
+                            />
+                            {roleMeta.name}
+                          </span>
+                        } />
+                        <TooltipContent side="top">
+                          <p className="text-xs">{roleMeta.description}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableCell>
+
+                    {/* Last Active Timestamp */}
+                    <TableCell className="py-3">
+                      {account.lastLogin ? (
+                        <Tooltip>
+                          <TooltipTrigger render={
+                            <div className="inline-flex items-center gap-1 text-xs text-foreground font-mono">
+                              <Clock className="size-3 text-muted-foreground shrink-0" />
+                              <span>{dayjs(account.lastLogin).fromNow()}</span>
+                            </div>
+                          } />
+                          <TooltipContent side="top">
+                            <p className="font-mono text-[11px]">
+                              {dayjs(account.lastLogin).format("MMM DD, YYYY · hh:mm:ss A")}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground italic">
+                          Never logged in
+                        </span>
+                      )}
+                    </TableCell>
+
+                    {/* Created Date */}
+                    <TableCell className="py-3 text-xs text-muted-foreground font-mono">
+                      {account.createdAt
+                        ? dayjs(account.createdAt).format("MMM DD, YYYY")
+                        : "—"}
+                    </TableCell>
+
+                    {/* Row Actions */}
+                    <TableCell className="text-right py-3 pr-4">
+                      <div className="flex items-center justify-end gap-1">
+                        {/* Edit Button */}
+                        {canEditThis ? (
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() => onEdit && onEdit(account)}
+                            className="size-7 text-muted-foreground hover:text-foreground"
+                            title="Edit account credentials"
+                            aria-label={`Edit ${account.username}`}
+                          >
+                            <Edit2 className="size-3.5" />
+                          </Button>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger render={
+                              <span className="inline-block cursor-not-allowed">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-xs"
+                                  disabled
+                                  className="size-7 opacity-40 text-muted-foreground pointer-events-none"
+                                  aria-label="Super Admin accounts require Super Admin privileges"
+                                >
+                                  <Lock className="size-3.5" />
+                                </Button>
+                              </span>
+                            } />
+                            <TooltipContent side="left">
+                              <p className="text-xs">
+                                Super Admin accounts can only be edited by Super Admins.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+
+                        {/* Delete Button */}
+                        {canDeleteThis ? (
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() => onDelete && onDelete(account)}
+                            className="size-7 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            title="Delete account"
+                            aria-label={`Delete ${account.username}`}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        ) : isSelf ? (
+                          <Tooltip>
+                            <TooltipTrigger render={
+                              <span className="inline-block cursor-not-allowed">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-xs"
+                                  disabled
+                                  className="size-7 opacity-40 text-muted-foreground pointer-events-none"
+                                  aria-label="Cannot delete your own account"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </Button>
+                              </span>
+                            } />
+                            <TooltipContent side="left">
+                              <p className="text-xs">
+                                Security safeguard: You cannot delete your own account.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger render={
+                              <span className="inline-block cursor-not-allowed">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-xs"
+                                  disabled
+                                  className="size-7 opacity-40 text-muted-foreground pointer-events-none"
+                                  aria-label="Cannot delete Super Admin account"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </Button>
+                              </span>
+                            } />
+                            <TooltipContent side="left">
+                              <p className="text-xs">
+                                Super Admin privileges required to remove this account.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePreviousPage}
-            disabled={pagination.pageIndex === 0}
-          >
-            Previous
-          </Button>
-          <div className="text-sm font-medium">
-            Page {pagination.pageIndex + 1} of {Math.max(1, pageCount)}
+
+        {/* Standardized Pagination Controls */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground px-1">
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-[11px]">
+              Showing <span className="font-medium text-foreground">{startItem}</span> to{" "}
+              <span className="font-medium text-foreground">{endItem}</span> of{" "}
+              <span className="font-medium text-foreground">{total}</span> accounts
+            </span>
+
+            {/* Page Size Selector */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-muted-foreground">Rows:</span>
+              <Select
+                value={String(limit)}
+                onValueChange={(val) => onLimitChange && onLimitChange(Number(val))}
+              >
+                <SelectTrigger className="h-7 w-16 text-[11px] border-border/80 bg-background font-mono">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <SelectItem
+                      key={size}
+                      value={String(size)}
+                      className="text-[11px] font-mono"
+                    >
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleNextPage}
-            disabled={pagination.pageIndex >= pageCount - 1 || pageCount === 0}
-          >
-            Next
-          </Button>
+
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(page - 1)}
+              disabled={page <= 1 || loading}
+              className="h-7 px-2.5 text-xs border-border/80 gap-1"
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="size-3.5" />
+              Prev
+            </Button>
+
+            <span className="px-2 text-[11px] font-medium text-foreground font-mono">
+              Page {page} of {Math.max(totalPages, 1)}
+            </span>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(page + 1)}
+              disabled={page >= totalPages || loading}
+              className="h-7 px-2.5 text-xs border-border/80 gap-1"
+              aria-label="Next page"
+            >
+              Next
+              <ChevronRight className="size-3.5" />
+            </Button>
+          </div>
         </div>
       </div>
-
-      {/* Delete confirmation dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the account for{" "}
-              {accountToDelete?.name}. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+    </TooltipProvider>
   );
-}
+});
+
+export default AccountTable;

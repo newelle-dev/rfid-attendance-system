@@ -1,77 +1,95 @@
-import { NextResponse } from 'next/server';
-import { executeQuery } from '@/lib/db';
-import bcrypt from 'bcryptjs';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { NextResponse } from "next/server";
+import { executeQuery } from "@/lib/db";
+import bcrypt from "bcryptjs";
+import { requireAdminSession } from "@/lib/auth";
+import { z } from "zod";
 
-// GET: List all accounts with filtering, search, and pagination
+const createAccountSchema = z.object({
+  name: z.string().trim().min(2, "Full name must be at least 2 characters"),
+  username: z
+    .string()
+    .trim()
+    .min(3, "Username must be at least 3 characters")
+    .max(50, "Username cannot exceed 50 characters")
+    .regex(/^[a-zA-Z0-9._-]+$/, "Username can only contain alphanumeric characters, dots, underscores, and hyphens"),
+  employeeId: z.string().trim().min(1, "Ashima ID is required"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  role: z.enum(["superadmin", "admin", "security", "hr"], {
+    errorMap: () => ({ message: "Valid role is required (superadmin, admin, security, hr)" }),
+  }),
+});
+
+/**
+ * GET: List all admin accounts with faceted filtering, search, and pagination
+ */
 export async function GET(request) {
-  const session = await getServerSession(authOptions);
-  
-  // Check authentication and permissions
-  if (!session?.user || !['superadmin', 'admin'].includes(session.user.role)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-  }
+  const { error } = await requireAdminSession(["admin", "superadmin"]);
+  if (error) return error;
 
   try {
-    // Extract query parameters
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search') || '';
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '10', 10);
+    const search = searchParams.get("search")?.trim() || "";
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "10", 10)));
     const offset = (page - 1) * limit;
-    const role = searchParams.get('role') || '';
+    const role = searchParams.get("role")?.trim() || "";
 
-    // Build query conditions
-    let conditions = [];
-    let values = [];
+    const conditions = [];
+    const values = [];
 
-    // Add search condition
+    // Search condition across username, name, and employee Ashima ID
     if (search) {
-      conditions.push('(name LIKE ? OR username LIKE ? OR employee_id LIKE ?)');
+      conditions.push("(u.name LIKE ? OR u.username LIKE ? OR u.employee_id LIKE ?)");
       values.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
 
-    // Add role filter
-    if (role) {
-      conditions.push('role = ?');
+    // Role filter
+    if (role && role !== "all") {
+      conditions.push("u.role = ?");
       values.push(role);
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-    // Count total records
-    const countQuery = `SELECT COUNT(*) as total FROM admin_users ${whereClause}`;
+    // Count total records matching criteria
+    const countQuery = `SELECT COUNT(*) as total FROM admin_users u ${whereClause}`;
     const countResult = await executeQuery({
       query: countQuery,
-      values: values
+      values,
     });
-    const total = countResult[0].total;
+    const total = Number(countResult[0]?.total || 0);
 
-    // Get paginated results
+    // Fetch paginated accounts enriched with linked employee metadata
     const query = `
       SELECT 
-        id, 
-        name, 
-        username, 
-        employee_id as employeeId, 
-        role, 
-        last_login as lastLogin,
-        created_at as createdAt, 
-        updated_at as updatedAt
-      FROM admin_users 
+        u.id, 
+        u.name, 
+        u.username, 
+        u.employee_id as employeeId, 
+        u.role, 
+        u.last_login as lastLogin,
+        u.created_at as createdAt, 
+        u.updated_at as updatedAt,
+        e.id as linkedEmployeeId,
+        e.name as employeeName,
+        d.name as departmentName,
+        p.name as positionName,
+        e.status as employeeStatus
+      FROM admin_users u
+      LEFT JOIN employees e ON u.employee_id = e.ashima_id
+      LEFT JOIN departments d ON e.department_id = d.id
+      LEFT JOIN positions p ON e.position_id = p.id
       ${whereClause} 
-      ORDER BY name
+      ORDER BY u.id DESC
       LIMIT ? OFFSET ?
     `;
 
     const accounts = await executeQuery({
       query,
-      values: [...values, limit, offset]
+      values: [...values, limit, offset],
     });
 
-    // Format accounts - no need to change role names since they match in DB and UI
-    const formattedAccounts = accounts.map(account => ({
+    const formattedAccounts = accounts.map((account) => ({
       id: account.id,
       name: account.name,
       username: account.username,
@@ -79,7 +97,16 @@ export async function GET(request) {
       role: account.role,
       lastLogin: account.lastLogin,
       createdAt: account.createdAt,
-      updatedAt: account.updatedAt
+      updatedAt: account.updatedAt,
+      linkedEmployee: account.linkedEmployeeId
+        ? {
+            id: account.linkedEmployeeId,
+            name: account.employeeName,
+            department: account.departmentName || "Unassigned",
+            position: account.positionName || "Staff",
+            status: account.employeeStatus || "unknown",
+          }
+        : null,
     }));
 
     return NextResponse.json({
@@ -87,85 +114,107 @@ export async function GET(request) {
       total,
       page,
       limit,
-      pageCount: Math.ceil(total / limit)
+      pageCount: Math.ceil(total / limit) || 1,
     });
-  } catch (error) {
-    console.error('Error fetching accounts:', error);
+  } catch (err) {
+    console.error("Error fetching accounts:", err);
     return NextResponse.json(
-      { error: 'Failed to fetch accounts' },
+      { error: "Failed to fetch admin accounts" },
       { status: 500 }
     );
   }
 }
 
-// POST: Create a new account
+/**
+ * POST: Create a new admin account
+ */
 export async function POST(request) {
-  const session = await getServerSession(authOptions);
-  
-  // Check authentication and permissions
-  if (!session?.user || !['superadmin', 'admin'].includes(session.user.role)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-  }
-
-  // Only superadmin can create superadmin accounts
-  const body = await request.json();
-  if (body.role === 'superadmin' && session.user.role !== 'superadmin') {
-    return NextResponse.json(
-      { error: 'Only Super Admin can create Super Admin accounts' },
-      { status: 403 }
-    );
-  }
+  const { error, user } = await requireAdminSession(["admin", "superadmin"]);
+  if (error) return error;
 
   try {
-    // Validate required fields
-    if (!body.username || !body.password || !body.name || !body.role || !body.employeeId) {
+    const body = await request.json();
+    const parsed = createAccountSchema.safeParse(body);
+
+    if (!parsed.success) {
+      const firstError = parsed.error.issues?.[0]?.message || "Validation failed";
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: firstError, details: parsed.error.format() },
         { status: 400 }
       );
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(body.password, salt);
+    const { name, username, employeeId, password, role } = parsed.data;
 
-    // Role is now directly used from request - no mapping needed
-    // Insert new account
-    const query = `
-      INSERT INTO admin_users 
-        (name, username, employee_id, password, role) 
+    // Privilege escalation prevention: Only superadmin can create superadmin accounts
+    if (role === "superadmin" && user.role !== "superadmin") {
+      return NextResponse.json(
+        { error: "Only Super Administrators can create accounts with Super Admin privileges" },
+        { status: 403 }
+      );
+    }
+
+    // Check for duplicate username
+    const existingUser = await executeQuery({
+      query: "SELECT id FROM admin_users WHERE username = ? LIMIT 1",
+      values: [username],
+    });
+
+    if (existingUser.length > 0) {
+      return NextResponse.json(
+        { error: `The username '${username}' is already in use. Please choose another.` },
+        { status: 409 }
+      );
+    }
+
+    // Check for duplicate employee ID
+    const existingEmp = await executeQuery({
+      query: "SELECT id FROM admin_users WHERE employee_id = ? LIMIT 1",
+      values: [employeeId],
+    });
+
+    if (existingEmp.length > 0) {
+      return NextResponse.json(
+        { error: `An admin account is already linked to Ashima ID '${employeeId}'.` },
+        { status: 409 }
+      );
+    }
+
+    // Hash password with bcrypt
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Insert new account record
+    const insertQuery = `
+      INSERT INTO admin_users (name, username, employee_id, password, role) 
       VALUES (?, ?, ?, ?, ?)
     `;
 
     const result = await executeQuery({
-      query,
-      values: [
-        body.name,
-        body.username,
-        body.employeeId,
-        hashedPassword,
-        body.role
-      ]
+      query: insertQuery,
+      values: [name, username, employeeId, hashedPassword, role],
     });
 
-    return NextResponse.json({
-      success: true,
-      id: result.insertId,
-      message: 'Account created successfully'
-    }, { status: 201 });
-  } catch (error) {
-    console.error('Error creating account:', error);
+    return NextResponse.json(
+      {
+        success: true,
+        id: result.insertId,
+        message: "Admin account created successfully",
+      },
+      { status: 201 }
+    );
+  } catch (err) {
+    console.error("Error creating account:", err);
 
-    // Handle duplicate entry error
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (err.code === "ER_DUP_ENTRY") {
       return NextResponse.json(
-        { error: 'Username or Employee ID already exists' },
+        { error: "Username or Ashima ID already exists" },
         { status: 409 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to create account' },
+      { error: "Failed to create account" },
       { status: 500 }
     );
   }
