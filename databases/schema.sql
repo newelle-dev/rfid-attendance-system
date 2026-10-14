@@ -1,6 +1,7 @@
--- RFID Attendance System Database Schema
--- Created: June 30, 2025
--- Description: Complete database schema for the RFID-based employee attendance tracking system
+-- ========================================================
+-- RFID Attendance System — Unified Database Schema
+-- Certified Production Schema & Initial Seed Data
+-- ========================================================
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -12,39 +13,40 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 -- --------------------------------------------------------
--- Create Database (Optional - uncomment if needed)
--- --------------------------------------------------------
--- CREATE DATABASE IF NOT EXISTS `rfid_attendance` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
--- USE `rfid_attendance`;
-
--- --------------------------------------------------------
--- Table structure for table `admin_users`
+-- Database Initialization
 -- --------------------------------------------------------
 
-CREATE TABLE `admin_users` (
+CREATE DATABASE IF NOT EXISTS `rfid_attendance` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE `rfid_attendance`;
+
+-- --------------------------------------------------------
+-- Table: admin_users
+-- Portal administrative accounts and role assignments
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `admin_users` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `username` varchar(100) NOT NULL,
-  `employee_id` varchar(50) NOT NULL COMMENT 'Ashima ID - unique employee identifier',
-  `password` varchar(255) NOT NULL COMMENT 'Hashed password using bcrypt',
+  `employee_id` varchar(50) NOT NULL COMMENT 'Ashima ID - unique identifier',
+  `password` varchar(255) NOT NULL COMMENT 'Bcrypt-hashed password',
   `role` enum('superadmin','admin','security','hr') NOT NULL DEFAULT 'admin',
+  `last_login` datetime DEFAULT NULL COMMENT 'Timestamp of user most recent login',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `last_login` datetime DEFAULT NULL COMMENT 'Records the timestamp of user''s most recent login',
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
   UNIQUE KEY `employee_id` (`employee_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
--- Table structure for table `departments`
+-- Table: departments
+-- Company organizational departments
 -- --------------------------------------------------------
 
-CREATE TABLE `departments` (
+CREATE TABLE IF NOT EXISTS `departments` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
-  `status` enum('active','inactive') DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -52,15 +54,14 @@ CREATE TABLE `departments` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
--- Table structure for table `positions`
+-- Table: positions
+-- Employee job designations and leadership flags
 -- --------------------------------------------------------
 
-CREATE TABLE `positions` (
+CREATE TABLE IF NOT EXISTS `positions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
-  `is_leader` tinyint(1) DEFAULT 0 COMMENT '1 if this position has leadership responsibilities',
-  `description` text DEFAULT NULL,
-  `status` enum('active','inactive') DEFAULT 'active',
+  `is_leader` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1 if position has leadership/supervisor responsibilities',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -68,21 +69,22 @@ CREATE TABLE `positions` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
--- Table structure for table `employees`
+-- Table: employees
+-- Master employee roster, RFID association, and hierarchy
 -- --------------------------------------------------------
 
-CREATE TABLE `employees` (
+CREATE TABLE IF NOT EXISTS `employees` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `ashima_id` varchar(12) NOT NULL COMMENT 'Unique employee ID in format XX-XXXXX',
+  `ashima_id` varchar(12) NOT NULL COMMENT 'Unique employee identifier (XX-XXXXX format)',
   `name` varchar(150) NOT NULL,
-  `rfid_tag` varchar(50) DEFAULT NULL COMMENT 'RFID card/tag identifier',
-  `photo` longblob DEFAULT NULL COMMENT 'Employee photo stored as binary data',
+  `rfid_tag` varchar(50) DEFAULT NULL COMMENT 'Hardware RFID card UID',
+  `photo` longblob DEFAULT NULL COMMENT 'Binary employee photograph',
   `emp_stat` varchar(12) DEFAULT 'Regular' COMMENT 'Employment status (Regular, Probationary, etc.)',
-  `status` enum('active','inactive','resigned') DEFAULT 'active',
+  `status` enum('active','inactive','resigned') NOT NULL DEFAULT 'active',
   `department_id` int(11) DEFAULT NULL,
   `position_id` int(11) DEFAULT NULL,
-  `leader` int(11) DEFAULT NULL COMMENT 'Reference to employee ID who is the direct supervisor',
-  `last_active` datetime DEFAULT NULL COMMENT 'Last recorded activity timestamp',
+  `leader` int(11) DEFAULT NULL COMMENT 'Self-referencing supervisor employee ID',
+  `last_active` datetime DEFAULT NULL COMMENT 'Timestamp of most recent RFID scan or check-in',
   `hire_date` date DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
@@ -99,36 +101,32 @@ CREATE TABLE `employees` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
--- Table structure for table `attendance_logs`
+-- Table: attendance_logs
+-- Paired punch events recorded from RFID kiosk terminals
 -- --------------------------------------------------------
 
-CREATE TABLE `attendance_logs` (
+CREATE TABLE IF NOT EXISTS `attendance_logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `employee_id` int(11) NOT NULL COMMENT 'Reference to employees table',
-  `ashima_id` varchar(20) NOT NULL COMMENT 'Employee Ashima ID for backward compatibility',
-  `log_type` enum('time_in','time_out','break_in','break_out') NOT NULL,
-  `timestamp` datetime NOT NULL DEFAULT current_timestamp(),
-  `rfid_tag` varchar(50) DEFAULT NULL COMMENT 'RFID tag used for this log entry',
-  `device_id` varchar(50) DEFAULT NULL COMMENT 'RFID scanner/device identifier',
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `ashima_id` varchar(20) NOT NULL COMMENT 'References employees.ashima_id',
+  `log_type` varchar(10) NOT NULL DEFAULT 'IN' COMMENT 'Current punch status: IN or OUT',
+  `in_time` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'Time of arrival/punch in',
+  `out_time` datetime DEFAULT NULL COMMENT 'Time of departure/punch out (NULL while clocked in)',
   PRIMARY KEY (`id`),
-  KEY `employee_id` (`employee_id`),
-  KEY `ashima_id` (`ashima_id`),
-  KEY `timestamp` (`timestamp`),
-  KEY `log_type` (`log_type`),
-  CONSTRAINT `attendance_logs_employee_fk` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `idx_attendance_ashima` (`ashima_id`),
+  KEY `idx_attendance_in_time` (`in_time`),
+  KEY `idx_attendance_log_type` (`log_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
--- Table structure for table `role_permissions`
+-- Table: role_permissions
+-- Role-based access control (RBAC) permission matrix
 -- --------------------------------------------------------
 
-CREATE TABLE `role_permissions` (
+CREATE TABLE IF NOT EXISTS `role_permissions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `role` enum('superadmin','admin','security','hr') NOT NULL,
-  `module` varchar(100) NOT NULL COMMENT 'Module name (employees_management, attendance_logs, etc.)',
-  `permission` json NOT NULL COMMENT 'JSON object containing permissions like {"access": true}',
+  `module` varchar(100) NOT NULL COMMENT 'Module name (employees_management, data_management, account_logins, attendance_logs, role_permissions)',
+  `permission` json NOT NULL COMMENT 'Access descriptor: {"access": true}',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -136,54 +134,35 @@ CREATE TABLE `role_permissions` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
--- Table structure for table `audit_logs`
+-- Performance Indexes
 -- --------------------------------------------------------
 
-CREATE TABLE `audit_logs` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) DEFAULT NULL COMMENT 'Admin user who performed the action',
-  `action` varchar(100) NOT NULL COMMENT 'Action performed (CREATE, UPDATE, DELETE, LOGIN, etc.)',
-  `table_name` varchar(100) DEFAULT NULL COMMENT 'Database table affected',
-  `record_id` int(11) DEFAULT NULL COMMENT 'ID of the affected record',
-  `old_values` json DEFAULT NULL COMMENT 'Previous values before change',
-  `new_values` json DEFAULT NULL COMMENT 'New values after change',
-  `ip_address` varchar(45) DEFAULT NULL,
-  `user_agent` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `user_id` (`user_id`),
-  KEY `action` (`action`),
-  KEY `table_name` (`table_name`),
-  KEY `created_at` (`created_at`),
-  CONSTRAINT `audit_logs_user_fk` FOREIGN KEY (`user_id`) REFERENCES `admin_users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+CREATE INDEX `idx_employee_name` ON `employees` (`name`);
+CREATE INDEX `idx_employee_department_status` ON `employees` (`department_id`, `status`);
 
 -- --------------------------------------------------------
--- Table structure for table `system_settings`
+-- Seed Data: Default Admin Accounts
+-- Passwords:
+--   superadmin: superadmin123
+--   admin:      admin123
+--   security:   security123
+--   hr:         hr123
 -- --------------------------------------------------------
 
-CREATE TABLE `system_settings` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `setting_key` varchar(100) NOT NULL,
-  `setting_value` text NOT NULL,
-  `setting_type` enum('string','number','boolean','json') DEFAULT 'string',
-  `description` text DEFAULT NULL,
-  `is_public` tinyint(1) DEFAULT 0 COMMENT '1 if setting can be accessed by non-admin users',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `setting_key` (`setting_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
--- Insert default data
--- --------------------------------------------------------
-
--- Default admin user (password: admin123)
 INSERT INTO `admin_users` (`name`, `username`, `employee_id`, `password`, `role`) VALUES
-('System Administrator', 'admin', '00-00000', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'superadmin');
+('Super Administrator', 'superadmin', '00-00000', '$2b$10$ev2A6anoA5kFzTQ3VapWlekUZc9ysutzMPUFfJsmrPA1gGqH.kXDe', 'superadmin'),
+('System Administrator', 'admin', '01-00000', '$2b$10$W5tSqCZZqbweJj6tLhcbReUABy7z9VQbMUJxidfpiqOjZKFOWJeX.', 'admin'),
+('Security Officer', 'security', '02-00000', '$2b$10$CZZr9GgIAAUWFScqOGz8ouKKjUHqLRr85Ibam1jmXfesI7LIivENe', 'security'),
+('Human Resources Manager', 'hr', '03-00000', '$2b$10$/FLsvs4Fjvu9jW1ibBy19.XSLbk0ME46.PrjMnxT8SPnoZy2pHg6q', 'hr')
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `password` = VALUES(`password`),
+  `role` = VALUES(`role`);
 
--- Default role permissions
+-- --------------------------------------------------------
+-- Seed Data: Role Permissions Matrix
+-- --------------------------------------------------------
+
 INSERT INTO `role_permissions` (`role`, `module`, `permission`) VALUES
 ('superadmin', 'employees_management', '{"access": true}'),
 ('superadmin', 'data_management', '{"access": true}'),
@@ -200,39 +179,91 @@ INSERT INTO `role_permissions` (`role`, `module`, `permission`) VALUES
 
 ('hr', 'attendance_logs', '{"access": true}'),
 ('hr', 'employees_management', '{"access": true}')
-
 ON DUPLICATE KEY UPDATE
-permission = VALUES(permission),
-updated_at = CURRENT_TIMESTAMP;
-
--- Default system settings
-INSERT INTO `system_settings` (`setting_key`, `setting_value`, `setting_type`, `description`, `is_public`) VALUES
-('company_name', 'RFID Attendance System', 'string', 'Company name displayed in the application', 1),
-('timezone', 'Asia/Manila', 'string', 'Default timezone for the application', 0),
-('attendance_grace_period', '15', 'number', 'Grace period in minutes for late attendance', 0),
-('max_daily_hours', '8', 'number', 'Maximum working hours per day', 0),
-('enable_photo_capture', 'true', 'boolean', 'Enable photo capture during attendance logging', 0),
-('rfid_scan_timeout', '5000', 'number', 'RFID scan timeout in milliseconds', 0)
-
-ON DUPLICATE KEY UPDATE
-setting_value = VALUES(setting_value),
-updated_at = CURRENT_TIMESTAMP;
+  `permission` = VALUES(`permission`),
+  `updated_at` CURRENT_TIMESTAMP;
 
 -- --------------------------------------------------------
--- Create indexes for performance
+-- Seed Data: Starter Departments
 -- --------------------------------------------------------
 
--- Additional indexes for attendance_logs
-CREATE INDEX `idx_attendance_date` ON `attendance_logs` (`timestamp`);
-CREATE INDEX `idx_attendance_employee_date` ON `attendance_logs` (`employee_id`, `timestamp`);
+INSERT INTO `departments` (`id`, `name`) VALUES
+(1, 'IT DEPARTMENT'),
+(2, 'HR DEPARTMENT'),
+(3, 'ACCOUNTING DEPARTMENT'),
+(4, 'SECURITY DEPARTMENT'),
+(5, 'OPERATIONS')
+ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
 
--- Additional indexes for employees
-CREATE INDEX `idx_employee_name` ON `employees` (`name`);
-CREATE INDEX `idx_employee_department_status` ON `employees` (`department_id`, `status`);
+-- --------------------------------------------------------
+-- Seed Data: Starter Positions
+-- --------------------------------------------------------
 
--- Additional indexes for audit_logs
-CREATE INDEX `idx_audit_user_action` ON `audit_logs` (`user_id`, `action`);
-CREATE INDEX `idx_audit_table_record` ON `audit_logs` (`table_name`, `record_id`);
+INSERT INTO `positions` (`id`, `name`, `is_leader`) VALUES
+(1, 'SYSTEM ADMINISTRATOR', 0),
+(2, 'TEAM LEADER', 1),
+(3, 'PROGRAMMER', 0),
+(4, 'HR OFFICER', 0),
+(5, 'ACCOUNTANT', 0),
+(6, 'SECURITY GUARD', 0),
+(7, 'OPERATIONS MANAGER', 1)
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `is_leader` = VALUES(`is_leader`);
+
+-- --------------------------------------------------------
+-- Seed Data: Employees
+-- --------------------------------------------------------
+
+INSERT INTO `employees` (`id`, `ashima_id`, `name`, `rfid_tag`, `emp_stat`, `status`, `department_id`, `position_id`, `leader`, `last_active`, `hire_date`) VALUES
+-- Administrative personnel linked to admin_users
+(1, '00-00000', 'Super Administrator', '1000000001', 'Regular', 'active', 1, 1, NULL, NOW() - INTERVAL 10 MINUTE, '2023-01-15'),
+(2, '01-00000', 'System Administrator', '1000000002', 'Regular', 'active', 1, 1, 1, NOW() - INTERVAL 25 MINUTE, '2023-03-01'),
+(3, '02-00000', 'Security Officer', '1000000003', 'Regular', 'active', 4, 6, 1, NOW() - INTERVAL 35 MINUTE, '2023-06-10'),
+(4, '03-00000', 'Human Resources Manager', '1000000004', 'Regular', 'active', 2, 4, 1, NOW() - INTERVAL 45 MINUTE, '2023-02-20'),
+
+-- Department leaders and team members
+(5, '24-00101', 'Marcus Vance', 'RFID-IT-001', 'Regular', 'active', 1, 2, 1, NOW() - INTERVAL 1 HOUR, '2023-04-12'),
+(6, '24-00102', 'Elena Rostova', 'RFID-IT-002', 'Regular', 'active', 1, 3, 5, NOW() - INTERVAL 2 HOUR, '2023-08-01'),
+(7, '24-00103', 'David Chen', 'RFID-IT-003', 'Probationary', 'active', 1, 3, 5, NOW() - INTERVAL 3 HOUR, '2024-01-10'),
+(8, '24-00201', 'Sophia Alcantara', 'RFID-HR-001', 'Regular', 'active', 2, 4, 4, NOW() - INTERVAL 4 HOUR, '2023-09-15'),
+(9, '24-00301', 'Alexander Cruz', 'RFID-ACC-001', 'Regular', 'active', 3, 5, 1, NOW() - INTERVAL 2 HOUR, '2023-05-18'),
+(10, '24-00501', 'Grace Villanueva', 'RFID-OPS-001', 'Regular', 'active', 5, 7, 1, NOW() - INTERVAL 1 HOUR, '2023-02-01'),
+(11, '24-00401', 'Rodrigo Santos', 'RFID-SEC-001', 'Regular', 'active', 4, 6, 3, NOW() - INTERVAL 5 HOUR, '2023-11-05'),
+(12, '24-00104', 'Aria Montgomery', 'RFID-IT-004', 'Probationary', 'inactive', 1, 3, 5, NOW() - INTERVAL 3 DAY, '2024-03-01')
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `rfid_tag` = VALUES(`rfid_tag`),
+  `emp_stat` = VALUES(`emp_stat`),
+  `status` = VALUES(`status`),
+  `department_id` = VALUES(`department_id`),
+  `position_id` = VALUES(`position_id`),
+  `leader` = VALUES(`leader`),
+  `last_active` = VALUES(`last_active`),
+  `hire_date` = VALUES(`hire_date`);
+
+-- --------------------------------------------------------
+-- Seed Data: Attendance Logs (Sample Activity)
+-- --------------------------------------------------------
+
+INSERT INTO `attendance_logs` (`ashima_id`, `log_type`, `in_time`, `out_time`) VALUES
+-- Yesterday's logs (paired completed shifts)
+('24-00101', 'OUT', CONCAT(CURDATE() - INTERVAL 1 DAY, ' 08:02:15'), CONCAT(CURDATE() - INTERVAL 1 DAY, ' 17:05:42')),
+('24-00102', 'OUT', CONCAT(CURDATE() - INTERVAL 1 DAY, ' 08:28:10'), CONCAT(CURDATE() - INTERVAL 1 DAY, ' 17:31:05')),
+('24-00201', 'OUT', CONCAT(CURDATE() - INTERVAL 1 DAY, ' 07:55:00'), CONCAT(CURDATE() - INTERVAL 1 DAY, ' 16:45:22')),
+('24-00301', 'OUT', CONCAT(CURDATE() - INTERVAL 1 DAY, ' 08:58:19'), CONCAT(CURDATE() - INTERVAL 1 DAY, ' 18:02:11')),
+('24-00501', 'OUT', CONCAT(CURDATE() - INTERVAL 1 DAY, ' 08:12:30'), CONCAT(CURDATE() - INTERVAL 1 DAY, ' 17:15:00')),
+
+-- Today's completed shifts (OUT)
+('24-00101', 'OUT', CONCAT(CURDATE(), ' 08:05:12'), CONCAT(CURDATE(), ' 17:02:45')),
+('24-00201', 'OUT', CONCAT(CURDATE(), ' 07:58:40'), CONCAT(CURDATE(), ' 16:30:15')),
+('24-00401', 'OUT', CONCAT(CURDATE(), ' 07:45:00'), CONCAT(CURDATE(), ' 16:00:30')),
+
+-- Today's currently active check-ins (IN, out_time IS NULL)
+('24-00102', 'IN', CONCAT(CURDATE(), ' 08:30:22'), NULL),
+('24-00103', 'IN', CONCAT(CURDATE(), ' 08:45:10'), NULL),
+('24-00301', 'IN', CONCAT(CURDATE(), ' 09:02:54'), NULL),
+('24-00501', 'IN', CONCAT(CURDATE(), ' 08:10:05'), NULL);
 
 COMMIT;
 
