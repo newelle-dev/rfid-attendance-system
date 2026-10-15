@@ -9,44 +9,43 @@ export default function useAttendance() {
   const [attendanceLog, setAttendanceLog] = useState(null);
   const [employeeStatus, setEmployeeStatus] = useState(null);
   const [error, setError] = useState(null);
-  const [showInstructions, setShowInstructions] = useState(true);
-  const [loading, setLoading] = useState(false); // <-- Add loading state
+  const [loading, setLoading] = useState(false);
 
   const [playSuccess] = useSound('/sounds/success.mp3');
   const [playError] = useSound('/sounds/error.mp3');
-
-  useEffect(() => {
-    if (!employeeInfo) return;
-    setShowInstructions(false);
-    const timer = setTimeout(() => {
-      clearEmployeeInfo();
-      setShowInstructions(true);
-    }, SETTINGS.AUTO_CLEAR_TIMEOUT);
-    return () => clearTimeout(timer);
-  }, [employeeInfo]);
-
-  useEffect(() => {
-    if (!error) return;
-    setShowInstructions(false);
-    const timer = setTimeout(() => {
-      setError(null);
-      setShowInstructions(true);
-    }, SETTINGS.ERROR_CLEAR_TIMEOUT);
-    return () => clearTimeout(timer);
-  }, [error]);
 
   const clearEmployeeInfo = useCallback(() => {
     setEmployeeInfo(null);
     setAttendanceLog(null);
     setEmployeeStatus(null);
-    setLoading(false); // <-- Reset loading on clear
+    setLoading(false);
   }, []);
 
+  const dismissError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  // Auto-dismiss punch overlay
+  useEffect(() => {
+    if (!employeeInfo) return;
+    const timer = setTimeout(() => {
+      clearEmployeeInfo();
+    }, SETTINGS.AUTO_CLEAR_TIMEOUT);
+    return () => clearTimeout(timer);
+  }, [employeeInfo, clearEmployeeInfo]);
+
+  // Auto-dismiss error overlay
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => {
+      dismissError();
+    }, SETTINGS.ERROR_CLEAR_TIMEOUT);
+    return () => clearTimeout(timer);
+  }, [error, dismissError]);
+
   const handleTagRead = useCallback(async (tag) => {
-    setLoading(true); // <-- Set loading true at start
-    setEmployeeInfo({ name: 'Processing...', photo: null });
-    setAttendanceLog(null);
-    setEmployeeStatus('Processing...');
+    if (!tag) return;
+    setLoading(true);
     setError(null);
 
     try {
@@ -62,20 +61,23 @@ export default function useAttendance() {
         setAttendanceLog(result.attendanceLog);
         setEmployeeStatus(result.logType === 'IN' ? STATUS.CLOCKED_IN : STATUS.CLOCKED_OUT);
         setError(null);
-        playSuccess();
+        try { playSuccess(); } catch {}
       } else {
-        setError(result.error || 'An unexpected error occurred.');
         clearEmployeeInfo();
-        playError();
+        setError(result.error || 'An unexpected error occurred.');
+        try { playError(); } catch {}
       }
     } catch (err) {
-      setError('An unexpected error occurred while processing the RFID tag.');
       clearEmployeeInfo();
-      playError();
+      setError('An unexpected error occurred while processing the RFID tag.');
+      try { playError(); } catch {}
     } finally {
-      setLoading(false); // <-- Always reset loading
+      setLoading(false);
     }
   }, [clearEmployeeInfo, playSuccess, playError]);
+
+  // Derived state: instructions only show when idle
+  const showInstructions = !employeeInfo && !error && !loading;
 
   return {
     employeeInfo,
@@ -85,6 +87,7 @@ export default function useAttendance() {
     showInstructions,
     handleTagRead,
     clearEmployeeInfo,
-    loading // <-- Return loading
+    dismissError,
+    loading
   };
 }
