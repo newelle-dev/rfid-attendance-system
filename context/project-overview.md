@@ -31,8 +31,12 @@ Administrators manage employee records, RFID credentials, departmental lists, at
 ### Employee-Facing (Kiosk Attendance Terminal)
 - **Fast RFID Card Tap**: Automatic `IN` / `OUT` paired logging via hardware HID listener (`lib/HIDListeners.js`).
 - **Input Guarding**: HID listener ignores focused form inputs (`INPUT`, `TEXTAREA`, `SELECT`, `contenteditable`) to prevent unintended keystroke capture.
-- **Real-Time Display**: Live clock, employee information, base64 photo avatar, and punch status.
-- **Audio & Visual Feedback**: Sound cues (`use-sound`) with auto-dismissing error banners (4s).
+- **Flatscreen TV Calibration**: Engineered for wall-mounted 1080p/4K TVs in corporate lobbies with fixed viewport fitting (`h-screen overflow-hidden`) and no vertical scrollbars.
+- **High-Tech Corporate HUD Clock**: Precision monospace digital time with optical corner reticles, dual-tone digits, glowing colon, Philippine Standard Time (`PST • UTC+8`) telemetry metadata, and an animated 60-second calibrated meter.
+- **Full-Screen Punch Confirmation Dossier**: Instant pop-up card displaying employee photo, Ashima ID, name, department, position, and paired Time In/Out punch records with a 9-second auto-clearing progress bar.
+- **Dedicated Error Feedback Overlay**: Distinct audio cues and high-contrast error cards for unregistered or unrecognized badge swipes.
+- **Interactive Badge Simulator Drawer**: Accessible via the top header button or `D` keyboard shortcut to test valid and invalid RFID card swipes without hardware.
+- **Corporate Identity Footer**: Edge-to-edge branding featuring the EastWest BPO logo, `Security Attendance Terminal` badge, and live `Scanner Ready` indicator.
 
 ### Admin Portal
 - **Dashboard Overview (`/admin`)**: Aggregated system metrics (total employees, today's attendance punches, department counts) and real-time activity feed.

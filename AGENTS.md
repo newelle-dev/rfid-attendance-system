@@ -28,6 +28,8 @@
 - Use slide-over `<Sheet>` (`components/ui/sheet.jsx`) for record details/dossiers and complex forms instead of center modal dialogs.
 - Follow the 4-tier layout standard (`PageHeader` -> Command Header -> KPI Strip -> Main Workspace Card); every admin page root div must strictly be `<div className="space-y-6">`.
 - Use design system semantic color tokens (`bg-muted/20`, `bg-background`, `border-border/80`, `text-foreground`, `text-muted-foreground`).
+- Place kiosk attendance client components strictly under `components/kiosk/` (`KioskClock`, `KioskHeader`, `KioskFooter`, `KioskPunchOverlay`, `KioskErrorOverlay`, `DemoBadgeDrawer`).
+- Ensure kiosk punch/error overlays maintain `z-[60]` to render above Radix UI drawer sheets (`z-50`).
 
 ### Ask First
 - Modifying SQL schemas or migrations in `databases/`.
@@ -66,8 +68,10 @@
 │   └── api/
 │       ├── admin/                  # Protected admin REST endpoints (requireAdminSession)
 │       └── attendance/             # Public kiosk punch recording endpoint
-├── components/admin/layout/        # SideNav, Header, HeaderClock, PageHeader, CommandMenu
-├── components/ui/                  # Base UI / Radix primitives, DeleteConfirmationDialog, Sheet
+├── components/
+│   ├── kiosk/                      # Kiosk attendance terminal (KioskClock, KioskHeader, KioskFooter, Overlays, Drawer)
+│   ├── admin/                      # SideNav, Header, HeaderClock, PageHeader, CommandMenu, Domain forms/tables
+│   └── ui/                         # Base UI / Radix primitives, DeleteConfirmationDialog, Sheet
 ├── lib/
 │   ├── auth.js                     # requireAdminSession helper for route handlers
 │   ├── db.js                       # mysql2 connection pool and executeQuery runner

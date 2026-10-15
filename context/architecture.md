@@ -44,7 +44,7 @@ rfid-attendance-system/
 │           ├── profile/                  # Admin profile details
 │           └── role-permissions/         # Permission CRUD & role-based matrix
 ├── components/
-│   ├── Clock.js                          # Real-time clock for kiosk terminal
+│   ├── kiosk/                            # Modular kiosk components (KioskClock, KioskHeader, KioskFooter, KioskPunchOverlay, KioskErrorOverlay, DemoBadgeDrawer)
 │   ├── admin/                            # Domain-specific admin portal components
 │   │   ├── accounts/                     # User table, account drawer forms, dialogs
 │   │   ├── attendance/                   # Attendance table, date filters, punch badges
@@ -54,7 +54,6 @@ rfid-attendance-system/
 │   │   ├── lists/                        # Department & position management tables & dialogs
 │   │   └── role-permissions/             # Matrix view, role selector, permission toggles
 │   ├── auth/                             # LoginForm, PasswordInput, PermissionGuard, LogoutConfirmationDialog
-│   ├── layout/home/                      # Kiosk components: EmployeeCard, EmployeePhoto, ErrorDisplay
 │   └── ui/                               # Base UI primitives (Base UI & Radix primitives, DeleteConfirmationDialog)
 ├── hooks/                                # Custom React hooks
 │   ├── useAccountLogins.js               # Admin account state & operations
@@ -119,8 +118,8 @@ RFID Card Tap
           → UPDATE record with log_type = 'OUT', out_time = NOW()
   → Update employee status & last_active timestamp
   → Return employee details + updated log entry
-  → UI: renders EmployeeCard + sound feedback via use-sound
-  → Error/Banner auto-dismisses after 4 seconds
+  → UI: renders KioskPunchOverlay (cinematic dossier card with 9s auto-clear countdown and paired in/out timestamps) + sound feedback via use-sound
+  → In case of error: renders KioskErrorOverlay (with auto-dismiss timer and retry trigger)
 ```
 
 ### 2. Admin Portal Navigation Flow

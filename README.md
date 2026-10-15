@@ -9,10 +9,12 @@ A modern, high-performance attendance tracking and management system built with 
 ### 🏢 Kiosk Attendance Terminal (`/`)
 - **Instant RFID Card Swiping**: Rapid check-in/check-out detection via USB RFID reader (HID keyboard emulation).
 - **Keystroke Target Guarding**: Hardware listener (`lib/HIDListeners.js`) ignores focused inputs (`INPUT`, `TEXTAREA`, `SELECT`, `contenteditable`) to prevent scan interference during form entry.
-- **Paired Punch Tracking**: Automatically pairs `IN` and `OUT` events per employee with timestamp and duration metrics.
-- **Employee Dossier & Visual Feedback**: Displays employee photo, Ashima ID, name, department, position, and punch status.
-- **Audio Notifications & Auto-Dismiss Banners**: Distinct audio cues for success/failure via `use-sound`, with error alerts auto-dismissing after 4 seconds.
-- **Live Terminal Clock**: High-precision synchronized time display.
+- **Flatscreen TV Display Calibration**: Calibrated for wall-mounted 1080p/4K TVs in corporate lobbies with fixed viewport fitting (`h-screen overflow-hidden`) and no vertical scrollbars.
+- **High-Tech Corporate HUD Clock**: Precision monospace digital time with optical corner reticles, dual-tone digits, pulsating colon, Philippine Standard Time (`PST • UTC+8`) telemetry metadata, and an animated 60-second calibrated meter.
+- **Full-Screen Punch Confirmation Dossier**: Instant pop-up card displaying employee photo, Ashima ID, name, department, position, and paired Time In/Out punch records with a 9-second auto-clearing progress bar.
+- **Dedicated Error Feedback Overlay**: Distinct audio cues and high-contrast error cards for unregistered or unrecognized badge swipes.
+- **Interactive Badge Simulator Drawer**: Accessible via the top header button or `D` keyboard shortcut to test valid and invalid RFID card swipes without hardware.
+- **Corporate Identity Footer**: Edge-to-edge branding featuring the EastWest BPO logo, `Security Attendance Terminal` badge, and live `Scanner Ready` indicator.
 
 ### 🛡️ Admin Portal (`/admin`)
 - **4-Tier Layout Standard**: Uniform architecture across all modules (`PageHeader` -> Command Header -> KPI Strip -> Main Workspace Card).
@@ -197,9 +199,9 @@ rfid-attendance-system/
 │       ├── attendance/             # Public kiosk punch endpoints
 │       └── admin/                  # Protected REST endpoints (requireAdminSession)
 ├── components/
+│   ├── kiosk/                      # Kiosk terminal modules (clock, header, footer, punch overlay, error overlay, drawer)
 │   ├── admin/                      # Domain modules (employees, attendance, dashboard, etc.)
 │   ├── auth/                       # LoginForm, PasswordInput, PermissionGuard
-│   ├── layout/home/                # Kiosk cards, photo avatar, error alert
 │   └── ui/                         # Base UI / Radix primitives, DeleteConfirmationDialog, Sheet
 ├── hooks/                          # Custom React hooks (useEmployeesManager, useAttendance, etc.)
 ├── lib/
