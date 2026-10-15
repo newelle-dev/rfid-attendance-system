@@ -10,7 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   User,
   ShieldCheck,
@@ -115,21 +116,18 @@ const LeaderTable = memo(function LeaderTable({
                   </TableCell>
 
                   <TableCell className="text-right py-3 pr-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-[11px] px-2.5 border-border/80 gap-1 hover:bg-muted"
-                      render={
-                        <Link
-                          href={`/admin/employees-management?leader=${encodeURIComponent(
-                            leader.id
-                          )}`}
-                        />
-                      }
+                    <Link
+                      href={`/admin/employees-management?leader=${encodeURIComponent(
+                        leader.id
+                      )}`}
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "sm" }),
+                        "h-7 text-[11px] px-2.5 border-border/80 gap-1 hover:bg-muted inline-flex items-center"
+                      )}
                     >
                       <span>View Team</span>
                       <ArrowUpRight className="size-3 text-muted-foreground" />
-                    </Button>
+                    </Link>
                   </TableCell>
                 </TableRow>
               );

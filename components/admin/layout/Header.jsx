@@ -5,7 +5,7 @@ import Link from "next/link";
 import { MonitorPlay, ExternalLink } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import CommandMenu from "./CommandMenu";
 import { cn } from "@/lib/utils";
 
@@ -31,17 +31,19 @@ export default function Header({ className }) {
         <Separator orientation="vertical" className="h-4 bg-border/80 hidden sm:block" />
 
         {/* Jump to Kiosk Mode Button */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="hidden sm:inline-flex h-8 gap-1.5 rounded-lg border-border/80 bg-background px-2.5 text-xs font-medium text-foreground shadow-2xs hover:bg-muted"
-          render={<Link href="/" target="_blank" rel="noopener noreferrer" />}
-          nativeButton={false}
+        <Link
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "hidden sm:inline-flex h-8 gap-1.5 rounded-lg border-border/80 bg-background px-2.5 text-xs font-medium text-foreground shadow-2xs hover:bg-muted"
+          )}
         >
           <MonitorPlay className="size-3.5 text-blue-600 dark:text-blue-400" />
           <span>Kiosk Terminal</span>
           <ExternalLink className="size-3 text-muted-foreground ml-0.5" />
-        </Button>
+        </Link>
       </div>
     </header>
   );

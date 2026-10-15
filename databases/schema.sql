@@ -95,6 +95,8 @@ CREATE TABLE IF NOT EXISTS `employees` (
   KEY `position_id` (`position_id`),
   KEY `leader` (`leader`),
   KEY `status` (`status`),
+  KEY `idx_employee_name` (`name`),
+  KEY `idx_employee_department_status` (`department_id`, `status`),
   CONSTRAINT `employees_department_fk` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `employees_position_fk` FOREIGN KEY (`position_id`) REFERENCES `positions` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `employees_leader_fk` FOREIGN KEY (`leader`) REFERENCES `employees` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
@@ -133,12 +135,6 @@ CREATE TABLE IF NOT EXISTS `role_permissions` (
   UNIQUE KEY `unique_role_module` (`role`, `module`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
--- Performance Indexes
--- --------------------------------------------------------
-
-CREATE INDEX `idx_employee_name` ON `employees` (`name`);
-CREATE INDEX `idx_employee_department_status` ON `employees` (`department_id`, `status`);
 
 -- --------------------------------------------------------
 -- Seed Data: Default Admin Accounts
@@ -181,7 +177,7 @@ INSERT INTO `role_permissions` (`role`, `module`, `permission`) VALUES
 ('hr', 'employees_management', '{"access": true}')
 ON DUPLICATE KEY UPDATE
   `permission` = VALUES(`permission`),
-  `updated_at` CURRENT_TIMESTAMP;
+  `updated_at` = CURRENT_TIMESTAMP;
 
 -- --------------------------------------------------------
 -- Seed Data: Starter Departments

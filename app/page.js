@@ -1,16 +1,20 @@
 'use client';
 
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CreditCard } from 'lucide-react';
 import HIDListener from '@/lib/HIDListeners';
 import Clock from '@/components/Clock';
 import EmployeeCard from '@/components/layout/home/EmployeeCard';
 import EmployeePhoto from '@/components/layout/home/EmployeePhoto';
 import ErrorDisplay from '@/components/layout/home/ErrorDisplay';
+import DemoBadgeDrawer from '@/components/layout/home/DemoBadgeDrawer';
 import useAttendance from '@/hooks/useAttendance';
 import { ANIMATIONS } from '@/constants';
 import Image from 'next/image';
 
 export default function Home() {
+  const [demoOpen, setDemoOpen] = useState(false);
   const {
     employeeInfo,
     attendanceLog,
@@ -53,6 +57,26 @@ export default function Home() {
               >
                 Please Tap Your ID Card
               </motion.h2>
+
+              {/* Portfolio Showcase Quick Trigger */}
+              <motion.div
+                className="mt-6 flex items-center justify-center gap-2"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setDemoOpen(true)}
+                  className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-cyan-950/70 hover:bg-cyan-900/90 border border-cyan-500/40 text-cyan-200 text-sm font-medium transition-all hover:scale-105 active:scale-95 shadow-lg shadow-cyan-950/50 backdrop-blur-sm cursor-pointer"
+                >
+                  <CreditCard className="h-4 w-4 text-cyan-400" />
+                  <span>No RFID scanner? Tap here to test sample badges</span>
+                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white/10 text-cyan-300 rounded border border-white/10">
+                    D
+                  </kbd>
+                </button>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -126,8 +150,19 @@ export default function Home() {
         </div>
       </div>
 
-      {/* HID Listener */}
-      <HIDListener onTagRead={handleTagRead} />
+      {/* Portfolio Showcase Demo Badge Drawer */}
+      <DemoBadgeDrawer
+        open={demoOpen}
+        onOpenChange={setDemoOpen}
+        onTagRead={handleTagRead}
+        isProcessing={loading}
+      />
+
+      {/* Hardware HID & Paste Listener with shortcut */}
+      <HIDListener
+        onTagRead={handleTagRead}
+        onToggleDemo={() => setDemoOpen((prev) => !prev)}
+      />
     </div>
   );
 }
